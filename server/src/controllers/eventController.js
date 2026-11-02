@@ -70,3 +70,50 @@ exports.createEvent = async (req, res) => {
     res.status(500).json({ message: 'Server error creating event' });
   }
 };
+
+// ==========================================
+// NEW ADMIN FUNCTIONS BELOW
+// ==========================================
+
+// @desc    Get all events for admin (includes drafts/cancelled)
+// @route   GET /api/events/admin/list
+exports.getAdminEvents = async (req, res) => {
+  try {
+    const events = await Event.findAll({
+      include: [
+        { model: Category, attributes: ['name'] },
+        { model: TicketType }
+      ],
+      order: [['created_at', 'DESC']] // Newest events first
+    });
+    res.status(200).json(events);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error fetching admin events' });
+  }
+};
+
+// @desc    Create a ticket type for an event
+// @route   POST /api/events/:id/ticket-types
+exports.createTicketType = async (req, res) => {
+  try {
+    const { name, price, quantity_total } = req.body;
+    const event_id = req.params.id;
+
+    // Check if event exists
+    const event = await Event.findByPk(event_id);
+    if (!event) return res.status(404).json({ message: 'Event not found' });
+
+    const ticketType = await TicketType.create({
+      event_id,
+      name,
+      price,
+      quantity_total
+    });
+
+    res.status(201).json(ticketType);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error creating ticket type' });
+  }
+};

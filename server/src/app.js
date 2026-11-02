@@ -11,8 +11,10 @@ app.use(express.json()); // Parses incoming JSON
 
 // Routes
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
-app.use('/api/auth', require('./routes/authRoutes')); // <-- ADD THIS LINE
+app.use('/api/auth', require('./routes/authRoutes')); 
 app.use('/api/events', require('./routes/eventRoutes'));
+app.use('/api/payments', require('./routes/paymentRoutes'));
+app.use('/api/categories', require('./routes/categoryRoutes'));
 
 module.exports = app;
 
