@@ -158,7 +158,6 @@ exports.resetPasswordTemplate = (name, resetLink) => {
 };
 
 
-// ... (keep your escapeHtml and resetPasswordTemplate exactly as they are above) ...
 
 exports.twoFactorCodeTemplate = (name, otp) => {
   const safeName = escapeHtml(name);

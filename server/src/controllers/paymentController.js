@@ -184,3 +184,39 @@ exports.handleCallback = async (req, res) => {
     res.status(500).json({ message: 'Callback processing error' });
   }
 };
+
+
+// @desc    Check payment status for polling
+// @route   GET /api/payments/status/:orderId
+exports.getPaymentStatus = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    
+    // Find the order and include the tickets if they exist
+    const order = await Order.findByPk(orderId, {
+      include: [
+        { model: Payment, attributes: ['status', 'mpesa_receipt'] },
+        { model: Ticket, attributes: ['reference_code', 'status'] }
+      ]
+    });
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // Security: Ensure the user requesting this is the one who owns the order
+    if (order.user_id !== req.user.user_id) {
+      return res.status(403).json({ message: 'Not authorized to view this order' });
+    }
+
+    res.status(200).json({
+      orderId: order.order_id,
+      status: order.status, // 'pending', 'paid', or 'failed'
+      tickets: order.Tickets // Will be empty if pending, populated if paid
+    });
+
+  } catch (error) {
+    console.error('Error fetching payment status:', error);
+    res.status(500).json({ message: 'Server error checking payment status' });
+  }
+};
