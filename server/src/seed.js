@@ -1,13 +1,13 @@
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
-const { sequelize, User, Category, Event, TicketType } = require('./models');
+const { sequelize, User, Event, TicketType } = require('./models');
 
 const seedDatabase = async () => {
   try {
     await sequelize.authenticate();
     console.log('Connected to DB. Seeding data...');
 
-    // 1. Create Admin User
+    // 1. Create Admin User (if it doesn't already exist)
     const salt = await bcrypt.genSalt(10);
     const password_hash = await bcrypt.hash('Admin123!', salt);
 
@@ -20,38 +20,42 @@ const seedDatabase = async () => {
         role: 'admin'
       }
     });
-    console.log('Admin User ready: admin@eventgo.com | Password: Admin123!');
+    console.log('✅ Admin User ready: admin@eventgo.com | Password: Admin123!');
 
-    // 2. Create Categories
-    const [musicCat] = await Category.findOrCreate({ where: { name: 'Music' }, defaults: { description: 'Concerts and gigs' } });
-    const [techCat] = await Category.findOrCreate({ where: { name: 'Technology' }, defaults: { description: 'Tech conferences' } });
-
-    // 3. Create an Event
-    const [event, eventCreated] = await Event.findOrCreate({
-      where: { title: 'Nairobi Tech Summit' },
-      defaults: {
-        category_id: techCat.category_id,
-        created_by: admin.user_id,
-        description: 'The biggest tech event of the year.',
-        venue: 'KICC, Nairobi',
-        event_date: new Date('2026-12-15T09:00:00'),
-        status: 'published'
-      }
-    });
-
-    // 4. Create Ticket Types for the Event
-    if (eventCreated) {
-      await TicketType.bulkCreate([
-        { event_id: event.event_id, name: 'Regular', price: 2000, quantity_total: 100 },
-        { event_id: event.event_id, name: 'VIP', price: 5000, quantity_total: 20 }
-      ]);
-      console.log('Created sample event with Regular and VIP tickets.');
+    // 2. Fetch all the events you just inserted via SQL
+    const events = await Event.findAll();
+    
+    if (events.length === 0) {
+      console.log('⚠️ No events found in DB. Please run the SQL script to add events first.');
+      process.exit(0);
     }
 
-    console.log('Seeding complete!');
+    let ticketsCreated = 0;
+
+    // 3. Loop through each event and add tickets if they don't exist
+    for (const event of events) {
+      // Check if this event already has ticket types
+      const existingTickets = await TicketType.count({ where: { event_id: event.event_id } });
+      
+      if (existingTickets === 0) {
+        await TicketType.bulkCreate([
+          { event_id: event.event_id, name: 'Regular', price: 1500, quantity_total: 200 },
+          { event_id: event.event_id, name: 'VIP', price: 5000, quantity_total: 50 }
+        ]);
+        ticketsCreated += 2;
+      }
+    }
+
+    if (ticketsCreated > 0) {
+      console.log(`🎟️ Created ${ticketsCreated} ticket types across all events.`);
+    } else {
+      console.log('✅ All events already have ticket types.');
+    }
+
+    console.log('🎉 Seeding complete!');
     process.exit(0);
   } catch (error) {
-    console.error('Seeding failed:', error);
+    console.error('❌ Seeding failed:', error);
     process.exit(1);
   }
 };
