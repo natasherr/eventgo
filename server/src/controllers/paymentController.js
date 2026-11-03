@@ -2,6 +2,7 @@ const { initiateSTKPush } = require('../utils/mpesa');
 const { sequelize, Order, Payment, Ticket, TicketType } = require('../models');
 const { logAction } = require('../utils/auditLogger');
 const crypto = require('crypto');
+const QRCode = require('qrcode');
 
 // @desc    Initiate M-Pesa STK Push (Creates Order and Payment in DB)
 // @route   POST /api/payments/stkpush
@@ -145,12 +146,18 @@ exports.handleCallback = async (req, res) => {
       order.status = 'paid';
       await order.save({ transaction: t });
 
-      // Generate Tickets
+      // Generate Tickets with QR Codes
       const ticketsToCreate = [];
       for (let i = 0; i < order.quantity; i++) {
+        const referenceCode = `TKT-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+        
+      // Generate the Base64 QR Code image
+        const qrCodeDataUrl = await QRCode.toDataURL(referenceCode);
+
         ticketsToCreate.push({
           order_id: order.order_id,
-          reference_code: `TKT-${crypto.randomBytes(3).toString('hex').toUpperCase()}`,
+          reference_code: referenceCode,
+          qr_code: qrCodeDataUrl, // Saving the image to the database
           status: 'valid'
         });
       }
@@ -196,8 +203,7 @@ exports.getPaymentStatus = async (req, res) => {
     const order = await Order.findByPk(orderId, {
       include: [
         { model: Payment, attributes: ['status', 'mpesa_receipt'] },
-        { model: Ticket, attributes: ['reference_code', 'status'] }
-      ]
+        { model: Ticket, attributes: ['reference_code', 'qr_code', 'status'] }       ]
     });
 
     if (!order) {
