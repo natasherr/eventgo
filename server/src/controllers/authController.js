@@ -194,8 +194,9 @@ exports.forgotPassword = async (req, res) => {
       expires_at: new Date(Date.now() + 15 * 60000)
     });
 
-    // The link pointing to your future frontend page
-    const resetLink = `http://localhost:5173/reset-password/${resetToken}`;
+    // The link pointing to your frontend page
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const resetLink = `${frontendUrl}/reset-password/${resetToken}`;
 
     // Use the new template
     const emailHtml = resetPasswordTemplate(user.full_name, resetLink);

@@ -6,7 +6,8 @@ const app = express();
 
 // Middleware
 app.use(helmet());
-app.use(cors({ origin: 'http://localhost:5173' }));
+// Allow requests from the frontend URL (falls back to localhost for local dev)
+app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5173' }));
 app.use(express.json()); // Parses incoming JSON
 
 // Routes
@@ -18,4 +19,3 @@ app.use('/api/categories', require('./routes/categoryRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 
 module.exports = app;
-
