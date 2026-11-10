@@ -1,10 +1,11 @@
 const {
-Order,
-Payment,
-Ticket,
-Event,
-User,
-TicketType
+  Order,
+  Payment,
+  Ticket,
+  Event,
+  User,
+  TicketType,
+  AuditLog
 } = require('../models');
 
 const { fn, col } = require('sequelize');
@@ -101,21 +102,67 @@ message: 'Error generating report'
 // @access Admin
 exports.getAllOrders = async (req, res) => {
   try {
-    console.log('Fetching admin orders...');
-
     const orders = await Order.findAll({
+      include: [
+        {
+          model: User,
+          attributes: ['user_id', 'full_name', 'email']
+        },
+        {
+          model: TicketType,
+          attributes: ['ticket_type_id', 'name', 'price'],
+          include: [
+            {
+              model: Event,
+              attributes: ['event_id', 'title']
+            }
+          ]
+        },
+        {
+          model: Payment,
+          attributes: [
+            'payment_id',
+            'amount',
+            'status',
+            'mpesa_receipt',
+            'paid_at'
+          ]
+        }
+      ],
       order: [['created_at', 'DESC']]
     });
-
-    console.log(`Fetched ${orders.length} orders`);
 
     res.status(200).json(orders);
   } catch (error) {
     console.error('Admin orders error:', error);
 
     res.status(500).json({
-      message: 'Unable to fetch orders.',
-      error: error.message
+      message: 'Unable to fetch orders.'
+    });
+  }
+};
+// @desc Get recent security audit logs
+// @route GET /api/admin/audit-logs
+// @access Admin
+exports.getAuditLogs = async (req, res) => {
+  try {
+    const logs = await AuditLog.findAll({
+      include: [
+        {
+          model: User,
+          attributes: ['user_id', 'full_name', 'email']
+        }
+      ],
+      order: [['created_at', 'DESC']],
+      limit: 100
+    });
+
+    res.status(200).json(logs);
+  } catch (error) {
+    console.error('Audit logs error:', error);
+
+    res.status(500).json({
+      message: 'Unable to fetch security activity.'
     });
   }
 };
