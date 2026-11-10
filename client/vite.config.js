@@ -4,6 +4,11 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   server: {
-    proxy: { '/api': 'https://eventgo-api.onrender.com' },
+    proxy: {
+      '/api': {
+        target: 'https://eventgo-api.onrender.com',
+        changeOrigin: true,
+      },
+    },
   },
 });
