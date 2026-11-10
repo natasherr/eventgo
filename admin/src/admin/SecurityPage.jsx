@@ -30,73 +30,155 @@ export default function SecurityPage() {
     });
   };
 
-  if (loading) return <p>Loading security activity...</p>;
+  const getActionClass = (action = '') => {
+    const value = action.toUpperCase();
+
+    if (value.includes('LOGIN') || value.includes('REGISTER')) {
+      return 'security-badge security-badge--success';
+    }
+
+    if (value.includes('FAILED') || value.includes('CANCELLED')) {
+      return 'security-badge security-badge--danger';
+    }
+
+    if (value.includes('PASSWORD') || value.includes('2FA')) {
+      return 'security-badge security-badge--warning';
+    }
+
+    if (value.includes('PAYMENT')) {
+      return 'security-badge security-badge--info';
+    }
+
+    return 'security-badge security-badge--default';
+  };
+
+  if (loading) {
+    return <div className="security-loading">Loading security activity...</div>;
+  }
 
   if (error) {
     return <div className="alert alert--error">{error}</div>;
   }
 
   return (
-    <div className="admin-page">
-      <div className="page-header">
+    <div className="admin-page security-page">
+
+      <div className="security-heading">
         <div>
-          <h1>Security</h1>
-          <p className="muted">
-            Monitor administrator and system activity.
-          </p>
+          <span className="security-eyebrow">SYSTEM MONITORING</span>
+          <h1>Security Centre</h1>
+          <p>Monitor administrator and system activity.</p>
+        </div>
+
+        <div className="security-status">
+          <span></span>
+          Audit logs active
         </div>
       </div>
 
-      <div className="stats-grid">
-        <div className="stat-card">
-          <span>Total Activities</span>
-          <h2>{logs.length}</h2>
+      <div className="security-stats">
+
+        <div className="security-stat">
+          <div className="security-stat-top">
+            <span className="security-icon security-icon--blue">▤</span>
+            <span className="security-stat-label">TOTAL ACTIVITIES</span>
+          </div>
+
+          <h2>{logs.length.toLocaleString()}</h2>
+          <p>Recorded system activities</p>
         </div>
 
-        <div className="stat-card">
-          <span>Latest Activity</span>
-          <h2>{logs.length ? formatDate(logs[0].created_at) : '—'}</h2>
+        <div className="security-stat">
+          <div className="security-stat-top">
+            <span className="security-icon security-icon--green">◷</span>
+            <span className="security-stat-label">LATEST ACTIVITY</span>
+          </div>
+
+          <h2 className="security-date">
+            {logs.length ? formatDate(logs[0].created_at) : '—'}
+          </h2>
+          <p>Most recently recorded activity</p>
         </div>
+
       </div>
 
-      <section className="panel">
-        <h2>Recent Security Activity</h2>
+      <section className="security-panel">
+
+        <div className="security-panel-heading">
+          <div>
+            <h2>Recent Security Activity</h2>
+            <p>Review recorded user and system events.</p>
+          </div>
+
+          <span className="security-count">
+            {logs.length} Records
+          </span>
+        </div>
 
         {logs.length === 0 ? (
-          <p className="muted">No security activity recorded yet.</p>
+          <div className="security-empty">
+            <span>▤</span>
+            <h3>No activity recorded</h3>
+            <p>Security events will appear here when recorded.</p>
+          </div>
         ) : (
-          <div className="sales-table-wrapper">
-            <table className="sales-table">
+          <div className="security-table-wrapper">
+            <table className="security-table">
+
               <thead>
                 <tr>
-                  <th>Action</th>
-                  <th>User</th>
-                  <th>Description</th>
-                  <th>IP Address</th>
-                  <th>Date</th>
+                  <th>ACTION</th>
+                  <th>USER</th>
+                  <th>DESCRIPTION</th>
+                  <th>IP ADDRESS</th>
+                  <th>DATE & TIME</th>
                 </tr>
               </thead>
 
               <tbody>
                 {logs.map((log) => (
                   <tr key={log.log_id}>
-                    <td>{log.action}</td>
+
                     <td>
-                      {log.User?.full_name || 'System'}
-                      {log.User?.email && (
-                        <div className="muted">{log.User.email}</div>
-                      )}
+                      <span className={getActionClass(log.action)}>
+                        {log.action || 'UNKNOWN'}
+                      </span>
                     </td>
-                    <td>{log.description || '—'}</td>
-                    <td>{log.ip_address || '—'}</td>
-                    <td>{formatDate(log.created_at)}</td>
+
+                    <td>
+                      <div className="security-user">
+                        <strong>
+                          {log.User?.full_name || 'System'}
+                        </strong>
+
+                        {log.User?.email && (
+                          <span>{log.User.email}</span>
+                        )}
+                      </div>
+                    </td>
+
+                    <td className="security-description">
+                      {log.description || '—'}
+                    </td>
+
+                    <td className="security-ip">
+                      {log.ip_address || '—'}
+                    </td>
+
+                    <td className="security-date-cell">
+                      {formatDate(log.created_at)}
+                    </td>
+
                   </tr>
                 ))}
               </tbody>
+
             </table>
           </div>
         )}
+
       </section>
+
     </div>
   );
 }

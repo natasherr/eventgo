@@ -28,69 +28,117 @@ export default function ReportsPage() {
   }, []);
 
   const totalRevenue = reports.reduce(
-    (sum, item) => sum + Number(item.totalRevenue || 0),
-    0
+    (sum, item) => sum + Number(item.totalRevenue || 0), 0
   );
 
   const totalTickets = reports.reduce(
-    (sum, item) => sum + Number(item.ticketsSold || 0),
-    0
+    (sum, item) => sum + Number(item.ticketsSold || 0), 0
   );
 
-  if (loading) return <p>Loading reports...</p>;
+  if (loading) {
+    return <div className="reports-loading">Loading reports...</div>;
+  }
 
   if (error) {
     return <div className="alert alert--error">{error}</div>;
   }
 
   return (
-    <div className="admin-page">
-      <div className="page-header">
+    <div className="admin-page reports-page">
+
+      <div className="reports-heading">
         <div>
-          <h1>Reports</h1>
-          <p className="muted">Review event sales and revenue performance.</p>
+          <span className="reports-eyebrow">ANALYTICS & INSIGHTS</span>
+          <h1>Sales Reports</h1>
+          <p>Track event performance, ticket sales and revenue.</p>
+        </div>
+
+        <div className="reports-live">
+          <span></span> Sales overview
         </div>
       </div>
 
-      <div className="stats-grid">
-        <div className="stat-card">
-          <span>Total Revenue</span>
+      <div className="reports-stats">
+
+        <div className="report-stat revenue-stat">
+          <div className="report-stat-top">
+            <span className="report-icon">KSh</span>
+            <span className="report-label">TOTAL REVENUE</span>
+          </div>
           <h2>{currency.format(totalRevenue)}</h2>
+          <p>Revenue from paid ticket sales</p>
         </div>
 
-        <div className="stat-card">
-          <span>Tickets Sold</span>
+        <div className="report-stat tickets-stat">
+          <div className="report-stat-top">
+            <span className="report-icon">▤</span>
+            <span className="report-label">TICKETS SOLD</span>
+          </div>
           <h2>{totalTickets.toLocaleString()}</h2>
+          <p>Total tickets purchased</p>
         </div>
 
-        <div className="stat-card">
-          <span>Events With Sales</span>
+        <div className="report-stat events-stat">
+          <div className="report-stat-top">
+            <span className="report-icon">▦</span>
+            <span className="report-label">EVENTS WITH SALES</span>
+          </div>
           <h2>{reports.length}</h2>
+          <p>Events generating revenue</p>
         </div>
+
       </div>
 
-      <section className="panel">
-        <h2>Sales by Event</h2>
+      <section className="reports-panel">
+        <div className="reports-panel-heading">
+          <div>
+            <h2>Sales by Event</h2>
+            <p>Revenue and ticket performance across events.</p>
+          </div>
+
+          <span className="reports-count">
+            {reports.length} Events
+          </span>
+        </div>
 
         {reports.length === 0 ? (
-          <p className="muted">No paid sales available yet.</p>
+          <div className="reports-empty">
+            <span>▤</span>
+            <h3>No sales available</h3>
+            <p>Paid event sales will appear here.</p>
+          </div>
         ) : (
           <div className="sales-table-wrapper">
-            <table className="sales-table">
+            <table className="sales-table reports-table">
               <thead>
                 <tr>
-                  <th>Event</th>
-                  <th>Tickets Sold</th>
-                  <th>Total Revenue</th>
+                  <th>#</th>
+                  <th>EVENT NAME</th>
+                  <th>TICKETS SOLD</th>
+                  <th>TOTAL REVENUE</th>
                 </tr>
               </thead>
 
               <tbody>
                 {reports.map((item, index) => (
                   <tr key={`${item.eventName}-${index}`}>
-                    <td>{item.eventName || 'Unknown event'}</td>
-                    <td>{Number(item.ticketsSold || 0).toLocaleString()}</td>
-                    <td>{currency.format(Number(item.totalRevenue || 0))}</td>
+                    <td className="report-number">
+                      {String(index + 1).padStart(2, '0')}
+                    </td>
+
+                    <td className="report-event-name">
+                      {item.eventName || 'Unknown event'}
+                    </td>
+
+                    <td>
+                      <span className="ticket-count">
+                        {Number(item.ticketsSold || 0).toLocaleString()}
+                      </span>
+                    </td>
+
+                    <td className="report-revenue">
+                      {currency.format(Number(item.totalRevenue || 0))}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -98,6 +146,7 @@ export default function ReportsPage() {
           </div>
         )}
       </section>
+
     </div>
   );
 }

@@ -19,7 +19,7 @@ const revenueData = await Payment.sum('amount', {
 where: { status: 'success' }
 });
 
-```
+
 const totalRevenue = revenueData || 0;
 const totalTickets = await Ticket.count();
 const totalEvents = await Event.count();
@@ -44,7 +44,7 @@ res.status(200).json({
   },
   recentSales
 });
-```
+
 
 } catch (error) {
 console.error('Dashboard stats error:', error);
@@ -85,9 +85,9 @@ group: [
 raw: true
 });
 
-```
+
 res.status(200).json(sales);
-```
+
 
 } catch (error) {
 console.error('Sales report error:', error);
