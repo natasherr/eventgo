@@ -135,21 +135,7 @@ npm run dev
 
 ---
 
-## 🔐 Test Credentials
 
-Use the following accounts to test the system locally or on the live deployment:
-
-**Administrator Account** (Requires 2FA via Email)
-
-*   **Email:** admin@eventgo.com
-*   **Password:** Admin123!
-
-**Regular Customer Account**
-
-*   **Email:** testuser@eventgo.com
-*   **Password:** Test123!
-
----
 
 ## 📖 Documentation
 
