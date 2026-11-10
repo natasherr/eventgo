@@ -172,3 +172,4 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+server/eventgo_dump.sql
