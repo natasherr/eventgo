@@ -1,22 +1,22 @@
 :root {
-  font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
-  color: #202438;
-  background: #f6f7fb;
+  font-family: Inter, "Segoe UI", Roboto, system-ui, -apple-system, sans-serif;
+  color: #0f172a;
+  background: #f8fafc;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  --color-primary: #5145cd;
-  --color-primary-light: #eeecff;
-  --color-text: #202438;
-  --color-muted: #858ba3;
-  --color-border: #e9eaf1;
-  --color-background: #f6f7fb;
+  --color-primary: #0d9488;
+  --color-primary-light: #f0fdfa;
+  --color-text: #0f172a;
+  --color-muted: #64748b;
+  --color-border: #e2e8f0;
+  --color-background: #f8fafc;
   --color-white: #ffffff;
-  --color-success: #1d9b70;
-  --color-danger: #d95757;
-  --shadow-card: 0 3px 18px rgba(28, 35, 75, 0.04);
+  --color-success: #16a34a;
+  --color-danger: #dc2626;
+  --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.04);
 }
 
 * {
@@ -32,14 +32,18 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  background: #f8fafc;
 }
 
+/* Force Inter across every element — prevents any UA serif bleed */
 body,
 button,
 input,
 select,
-textarea {
-  font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+textarea,
+h1, h2, h3, h4, h5, h6,
+strong, em, span, p, td, th, label, small {
+  font-family: Inter, "Segoe UI", Roboto, system-ui, -apple-system, sans-serif;
 }
 
 button,

@@ -84,9 +84,18 @@ export async function fetchEvents() {
   return request('/events');
 }
 
-// Body: { category_id, title, description, venue, event_date (ISO string) }
+// Body: { category_id, title, description, venue, event_date (ISO string), banner_image? }
 export async function createEvent(payload) {
   return request('/events', { method: 'POST', body: payload, auth: true });
+}
+
+export async function fetchCategories() {
+  return request('/categories');
+}
+
+// Body: { name, price, quantity_total }
+export async function createTicketType(eventId, payload) {
+  return request(`/events/${eventId}/ticket-types`, { method: 'POST', body: payload, auth: true });
 }
 // ---- Tickets & Sales ------------------------------------------------------
 

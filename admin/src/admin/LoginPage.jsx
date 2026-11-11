@@ -86,100 +86,126 @@ export default function LoginPage() {
 
   return (
     <div className="admin-login">
-      <form
-        className="admin-login__card"
-        onSubmit={requires2FA ? handleVerify : handleLogin}
-        noValidate
-      >
-        <h1>EventGo Admin</h1>
+      {/* ── Left: hero panel ── */}
+      <div className="admin-login__hero">
+        <div className="admin-login__hero-brand">
+          <span className="admin-login__hero-brand-icon">
+            <img src="/logo-icon.png" alt="EventGo logo" />
+          </span>
+          <div>
+            <span>EventGo</span>
+            <small>ADMINISTRATION</small>
+          </div>
+        </div>
 
-        {requires2FA ? (
-          <>
-            <p className="muted">
-              Check your email for the six-digit verification code.
-            </p>
+        <div className="admin-login__hero-copy">
+          <span className="admin-login__hero-eyebrow">
+            <span className="admin-login__hero-dot" />
+            Organizer Portal
+          </span>
+          <h2>The operating system for <em>unforgettable</em> events.</h2>
+          <p>
+            Manage events, track ticket sales, and monitor security —
+            all from one powerful dashboard.
+          </p>
+        </div>
+      </div>
 
-            <p className="muted">
-              Verification email: {pendingEmail || email}
-            </p>
+      {/* ── Right: form panel ── */}
+      <div className="admin-login__form-side">
+        <form
+          className="admin-login__card"
+          onSubmit={requires2FA ? handleVerify : handleLogin}
+          noValidate
+        >
+          {requires2FA ? (
+            <>
+              <h1 className="admin-login__card-title">Check your email</h1>
+              <p className="admin-login__card-sub">
+                We sent a six-digit code to <strong>{pendingEmail || email}</strong>
+              </p>
 
-            {serverError && (
-              <div className="alert alert--error" role="alert">
-                {serverError}
-              </div>
-            )}
+              {serverError && (
+                <div className="alert alert--error" role="alert">
+                  {serverError}
+                </div>
+              )}
 
-            <label htmlFor="otp">Verification code</label>
+              <label htmlFor="otp">Verification code</label>
 
-            <input
-              id="otp"
-              type="text"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={6}
-              value={otp}
-              onChange={(e) =>
-                setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))
-              }
-              placeholder="Enter 6-digit code"
-            />
+              <input
+                id="otp"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                value={otp}
+                onChange={(e) =>
+                  setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))
+                }
+                placeholder="000000"
+              />
 
-            <button type="submit" disabled={submitting}>
-              {submitting ? 'Verifying...' : 'Verify code'}
-            </button>
+              <button type="submit" disabled={submitting}>
+                {submitting ? 'Verifying…' : 'Verify code'}
+              </button>
 
-            <button type="button" onClick={goBack} disabled={submitting}>
-              Back to login
-            </button>
-          </>
-        ) : (
-          <>
-            <p className="muted">
-              Sign in to manage events and sales.
-            </p>
+              <button type="button" onClick={goBack} disabled={submitting}>
+                ← Back to sign in
+              </button>
+            </>
+          ) : (
+            <>
+              <h1 className="admin-login__card-title">Welcome back</h1>
+              <p className="admin-login__card-sub">
+                Sign in to your EventGo Admin account
+              </p>
 
-            {serverError && (
-              <div className="alert alert--error" role="alert">
-                {serverError}
-              </div>
-            )}
+              {serverError && (
+                <div className="alert alert--error" role="alert">
+                  {serverError}
+                </div>
+              )}
 
-            <label htmlFor="email">Email</label>
+              <label htmlFor="email">Email address</label>
 
-            <input
-              id="email"
-              type="email"
-              autoComplete="username"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              aria-invalid={!!errors.email}
-            />
+              <input
+                id="email"
+                type="email"
+                autoComplete="username"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                aria-invalid={!!errors.email}
+                placeholder="admin@example.com"
+              />
 
-            {errors.email && (
-              <span className="field-error">{errors.email}</span>
-            )}
+              {errors.email && (
+                <span className="field-error">{errors.email}</span>
+              )}
 
-            <label htmlFor="password">Password</label>
+              <label htmlFor="password">Password</label>
 
-            <input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              aria-invalid={!!errors.password}
-            />
+              <input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                aria-invalid={!!errors.password}
+                placeholder="••••••••"
+              />
 
-            {errors.password && (
-              <span className="field-error">{errors.password}</span>
-            )}
+              {errors.password && (
+                <span className="field-error">{errors.password}</span>
+              )}
 
-            <button type="submit" disabled={submitting}>
-              {submitting ? 'Signing in...' : 'Sign in'}
-            </button>
-          </>
-        )}
-      </form>
+              <button type="submit" disabled={submitting}>
+                {submitting ? 'Signing in…' : 'Sign in'}
+              </button>
+            </>
+          )}
+        </form>
+      </div>
     </div>
   );
 }

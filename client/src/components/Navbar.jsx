@@ -23,8 +23,8 @@ export default function Navbar() {
           <ul className="navbar-nav ms-auto align-items-md-center eg-nav-auth">
             {user ? (
               <>
-                <li className="nav-item me-md-3"><NavLink className={cls} to="/profile"><i className="fa-regular fa-user me-1" />{user.name}</NavLink></li>
-                <li className="nav-item"><button className="btn btn-outline-light btn-sm" onClick={() => { logout(); navigate('/'); }}>Logout</button></li>
+                <li className="nav-item me-md-3"><NavLink className="nav-link eg-nav-user" to="/profile"><i className="fa-regular fa-user" />{user.name}</NavLink></li>
+                <li className="nav-item"><button className="eg-nav-logout" onClick={() => { logout(); navigate('/'); }}><i className="fa-solid fa-arrow-right-from-bracket" />Logout</button></li>
               </>
             ) : (
               <>

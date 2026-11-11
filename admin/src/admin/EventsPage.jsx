@@ -1,17 +1,9 @@
-// client/src/admin/EventsPage.jsx
-import { useState } from 'react';
-import { createEvent } from './api';
+import { useEffect, useState } from 'react';
+import { createEvent, createTicketType, fetchCategories } from './api';
 import { useEvents, formatDate } from './useEvents';
 
-// The backend has no GET /api/categories yet, so the dropdown is hard-coded to
-// match what seed.js creates (Music is inserted first -> id 1, Technology -> id 2).
-// TODO: replace with a fetch once Ashley adds the endpoint.
-const CATEGORIES = [
-  { category_id: 1, name: 'Music' },
-  { category_id: 2, name: 'Technology' },
-];
-
 const EMPTY_FORM = { category_id: '', title: '', description: '', venue: '', event_date: '' };
+const EMPTY_TICKET = { name: '', price: '', quantity_total: '' };
 
 export default function EventsPage() {
   const { events, loading, error, reload } = useEvents();
@@ -20,6 +12,29 @@ export default function EventsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Ticket types: array of { name, price, quantity_total }
+  const [tickets, setTickets] = useState([{ ...EMPTY_TICKET }]);
+
+  function addTicket() {
+    setTickets((t) => [...t, { ...EMPTY_TICKET }]);
+  }
+
+  function removeTicket(i) {
+    setTickets((t) => t.filter((_, idx) => idx !== i));
+  }
+
+  function updateTicket(i, field) {
+    return (e) => setTickets((t) => t.map((row, idx) => idx === i ? { ...row, [field]: e.target.value } : row));
+  }
+
+  // Categories fetched from the live API
+  const [categories, setCategories] = useState([]);
+  useEffect(() => {
+    fetchCategories()
+      .then((data) => setCategories(Array.isArray(data) ? data : (data?.categories ?? [])))
+      .catch(() => setCategories([]));
+  }, []);
 
   function update(field) {
     return (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
@@ -31,6 +46,11 @@ export default function EventsPage() {
     if (!form.category_id) next.category_id = 'Choose a category.';
     if (!form.venue.trim()) next.venue = 'Enter the venue.';
     if (!form.event_date) next.event_date = 'Pick the date and time.';
+    tickets.forEach((t, i) => {
+      if (!t.name.trim()) next[`ticket_name_${i}`] = 'Enter a ticket name.';
+      if (!t.price || isNaN(Number(t.price)) || Number(t.price) < 0) next[`ticket_price_${i}`] = 'Enter a valid price (0 for free).';
+      if (!t.quantity_total || !Number.isInteger(Number(t.quantity_total)) || Number(t.quantity_total) < 1) next[`ticket_qty_${i}`] = 'Enter a quantity (min 1).';
+    });
     return next;
   }
 
@@ -44,19 +64,27 @@ export default function EventsPage() {
 
     setSubmitting(true);
     try {
-      await createEvent({
+      const created = await createEvent({
         category_id: Number(form.category_id),
         title: form.title.trim(),
         description: form.description.trim(),
         venue: form.venue.trim(),
-        // <input type="datetime-local"> gives "2026-12-01T10:00" with no timezone.
-        // new Date() reads it as the admin's local time (Nairobi), and
-        // toISOString() converts that to the UTC string the backend expects.
         event_date: new Date(form.event_date).toISOString(),
       });
+      // Create each ticket type against the new event_id
+      await Promise.all(
+        tickets.map((t) =>
+          createTicketType(created.event_id, {
+            name: t.name.trim(),
+            price: Number(t.price),
+            quantity_total: Number(t.quantity_total),
+          })
+        )
+      );
       setForm(EMPTY_FORM);
+      setTickets([{ ...EMPTY_TICKET }]);
       setSuccess('Event created and published.');
-      await reload(); // refresh the table so the new row appears
+      await reload();
     } catch (err) {
       setServerError(err.message);
     } finally {
@@ -66,75 +94,233 @@ export default function EventsPage() {
 
   return (
     <div className="admin-page">
-      <h1>Manage Events</h1>
+      {/* ── Page header ── */}
+      <div className="page-head">
+        <div>
+          <h1>Manage Events</h1>
+          <p className="muted">Create and publish events to the platform.</p>
+        </div>
+      </div>
 
-      <section className="card">
-        <h2>Create a new event</h2>
+      {/* ── Create form card ── */}
+      <section className="card ef-card">
+        <div className="ef-card-header">
+          <div>
+            <h2 className="ef-card-title">Create a new event</h2>
+            <p className="ef-card-sub">Fill in the details below. All fields marked * are required.</p>
+          </div>
+        </div>
+
         {serverError && <div className="alert alert--error" role="alert">{serverError}</div>}
         {success && <div className="alert alert--success" role="status">{success}</div>}
 
-        <form onSubmit={handleSubmit} noValidate className="event-form">
-          <label htmlFor="title">Title</label>
-          <input id="title" value={form.title} onChange={update('title')} aria-invalid={!!errors.title} />
-          {errors.title && <span className="field-error">{errors.title}</span>}
+        <form onSubmit={handleSubmit} noValidate>
+          <div className="ef-grid">
 
-          <label htmlFor="category">Category</label>
-          <select id="category" value={form.category_id} onChange={update('category_id')} aria-invalid={!!errors.category_id}>
-            <option value="">Select a category…</option>
-            {CATEGORIES.map((c) => (
-              <option key={c.category_id} value={c.category_id}>{c.name}</option>
-            ))}
-          </select>
-          {errors.category_id && <span className="field-error">{errors.category_id}</span>}
+            {/* ── Left column ── */}
+            <div className="ef-col">
 
-          <label htmlFor="venue">Venue</label>
-          <input id="venue" value={form.venue} onChange={update('venue')} aria-invalid={!!errors.venue} />
-          {errors.venue && <span className="field-error">{errors.venue}</span>}
+              <div className="ef-field">
+                <label className="ef-label" htmlFor="ef-title">Event title *</label>
+                <input
+                  id="ef-title"
+                  className={`ef-input${errors.title ? ' ef-input--error' : ''}`}
+                  placeholder="e.g. Nairobi Jazz Night 2026"
+                  value={form.title}
+                  onChange={update('title')}
+                  aria-invalid={!!errors.title}
+                />
+                {errors.title && <span className="ef-error">{errors.title}</span>}
+              </div>
 
-          <label htmlFor="event_date">Date &amp; time</label>
-          <input id="event_date" type="datetime-local" value={form.event_date} onChange={update('event_date')} aria-invalid={!!errors.event_date} />
-          {errors.event_date && <span className="field-error">{errors.event_date}</span>}
+              <div className="ef-field">
+                <label className="ef-label" htmlFor="ef-category">Category *</label>
+                <select
+                  id="ef-category"
+                  className={`ef-input${errors.category_id ? ' ef-input--error' : ''}`}
+                  value={form.category_id}
+                  onChange={update('category_id')}
+                  aria-invalid={!!errors.category_id}
+                >
+                  <option value="">Select a category…</option>
+                  {categories.map((c) => (
+                    <option key={c.category_id} value={c.category_id}>{c.name}</option>
+                  ))}
+                </select>
+                {errors.category_id && <span className="ef-error">{errors.category_id}</span>}
+              </div>
 
-          <label htmlFor="description">Description</label>
-          <textarea id="description" rows={4} value={form.description} onChange={update('description')} />
+              <div className="ef-field">
+                <label className="ef-label" htmlFor="ef-venue">Venue *</label>
+                <input
+                  id="ef-venue"
+                  className={`ef-input${errors.venue ? ' ef-input--error' : ''}`}
+                  placeholder="e.g. Carnivore Grounds, Nairobi"
+                  value={form.venue}
+                  onChange={update('venue')}
+                  aria-invalid={!!errors.venue}
+                />
+                {errors.venue && <span className="ef-error">{errors.venue}</span>}
+              </div>
 
-          <button type="submit" disabled={submitting}>
-            {submitting ? 'Creating…' : 'Create event'}
-          </button>
+              <div className="ef-field">
+                <label className="ef-label" htmlFor="ef-date">Date &amp; time *</label>
+                <input
+                  id="ef-date"
+                  type="datetime-local"
+                  className={`ef-input${errors.event_date ? ' ef-input--error' : ''}`}
+                  value={form.event_date}
+                  onChange={update('event_date')}
+                  aria-invalid={!!errors.event_date}
+                />
+                {errors.event_date && <span className="ef-error">{errors.event_date}</span>}
+              </div>
+
+            </div>
+
+            {/* ── Right column ── */}
+            <div className="ef-col">
+
+              {/* Description */}
+              <div className="ef-field">
+                <label className="ef-label" htmlFor="ef-description">Description</label>
+                <textarea
+                  id="ef-description"
+                  className="ef-input ef-textarea"
+                  rows={4}
+                  placeholder="Tell attendees what to expect…"
+                  value={form.description}
+                  onChange={update('description')}
+                />
+              </div>
+
+              {/* ── Ticket types ── */}
+              <div className="ef-field">
+                <div className="ef-tickets-header">
+                  <label className="ef-label">Ticket types *</label>
+                  <button type="button" className="ef-add-ticket-btn" onClick={addTicket}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                    Add type
+                  </button>
+                </div>
+
+                <div className="ef-tickets-list">
+                  {tickets.map((t, i) => (
+                    <div key={i} className="ef-ticket-row">
+                      <div className="ef-ticket-row-fields">
+                        <div className="ef-ticket-field">
+                          <label className="ef-label" htmlFor={`tt-name-${i}`}>Name</label>
+                          <input
+                            id={`tt-name-${i}`}
+                            className={`ef-input${errors[`ticket_name_${i}`] ? ' ef-input--error' : ''}`}
+                            placeholder="e.g. Regular, VIP"
+                            value={t.name}
+                            onChange={updateTicket(i, 'name')}
+                          />
+                          {errors[`ticket_name_${i}`] && <span className="ef-error">{errors[`ticket_name_${i}`]}</span>}
+                        </div>
+                        <div className="ef-ticket-field ef-ticket-field--narrow">
+                          <label className="ef-label" htmlFor={`tt-price-${i}`}>Price (KES)</label>
+                          <input
+                            id={`tt-price-${i}`}
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            className={`ef-input${errors[`ticket_price_${i}`] ? ' ef-input--error' : ''}`}
+                            placeholder="0"
+                            value={t.price}
+                            onChange={updateTicket(i, 'price')}
+                          />
+                          {errors[`ticket_price_${i}`] && <span className="ef-error">{errors[`ticket_price_${i}`]}</span>}
+                        </div>
+                        <div className="ef-ticket-field ef-ticket-field--narrow">
+                          <label className="ef-label" htmlFor={`tt-qty-${i}`}>Quantity</label>
+                          <input
+                            id={`tt-qty-${i}`}
+                            type="number"
+                            min="1"
+                            step="1"
+                            className={`ef-input${errors[`ticket_qty_${i}`] ? ' ef-input--error' : ''}`}
+                            placeholder="100"
+                            value={t.quantity_total}
+                            onChange={updateTicket(i, 'quantity_total')}
+                          />
+                          {errors[`ticket_qty_${i}`] && <span className="ef-error">{errors[`ticket_qty_${i}`]}</span>}
+                        </div>
+                      </div>
+                      {tickets.length > 1 && (
+                        <button type="button" className="ef-remove-ticket-btn" onClick={() => removeTicket(i)} aria-label={`Remove ticket type ${i + 1}`}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          {/* Submit row */}
+          <div className="ef-submit-row">
+            <button type="submit" className="ef-submit-btn" disabled={submitting}>
+              {submitting ? (
+                <>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" className="ef-spin">
+                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                  </svg>
+                  Creating event…
+                </>
+              ) : (
+                <>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                  Create event
+                </>
+              )}
+            </button>
+          </div>
         </form>
       </section>
 
+      {/* ── Events table ── */}
       <section className="card">
-        <h2>Published events</h2>
+        <div className="page-head" style={{ marginBottom: '16px' }}>
+          <h2>Published events</h2>
+          <span className="badge">{events.length} events</span>
+        </div>
         {loading && <p className="muted">Loading events…</p>}
         {error && <div className="alert alert--error" role="alert">{error}</div>}
         {!loading && !error && events.length === 0 && <p className="muted">No published events yet.</p>}
 
         {events.length > 0 && (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Event</th>
-                <th>Category</th>
-                <th>Venue</th>
-                <th>Date</th>
-                <th>Ticket types</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {events.map((ev) => (
-                <tr key={ev.event_id}>
-                  <td>{ev.title}</td>
-                  <td>{ev.Category?.name ?? '—'}</td>
-                  <td>{ev.venue}</td>
-                  <td>{formatDate(ev.event_date)}</td>
-                  <td>{ev.TicketTypes?.length ? ev.TicketTypes.map((t) => t.name).join(', ') : 'None yet'}</td>
-                  <td>{ev.status}</td>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Event</th>
+                  <th>Category</th>
+                  <th>Venue</th>
+                  <th>Date</th>
+                  <th>Ticket types</th>
+                  <th>Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {events.map((ev) => (
+                  <tr key={ev.event_id}>
+                    <td><strong>{ev.title}</strong></td>
+                    <td>{ev.Category?.name ?? '—'}</td>
+                    <td>{ev.venue}</td>
+                    <td>{formatDate(ev.event_date)}</td>
+                    <td>{ev.TicketTypes?.length ? ev.TicketTypes.map((t) => t.name).join(', ') : <span className="muted">None yet</span>}</td>
+                    <td><span className={`ef-status-badge ef-status-badge--${ev.status}`}>{ev.status}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
     </div>

@@ -1,15 +1,45 @@
 import { useAuth } from '../context/AuthContext';
 
+const initials = (name) =>
+  (name || '')
+    .trim()
+    .split(/\s+/)
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase() || '?';
+
 export default function Profile() {
   const { user } = useAuth();
 
   return (
-    <div className="mx-auto card card-body" style={{ maxWidth: 480 }}>
-      <h3 className="mb-3">My Profile</h3>
-      <div className="mb-3"><span className="form-label d-block">Full name</span><strong>{user?.name || 'Not provided'}</strong></div>
-      <div className="mb-3"><span className="form-label d-block">Email</span><strong>{user?.email || 'Not provided'}</strong></div>
-      <div className="mb-3"><span className="form-label d-block">Account type</span><strong>{user?.role || 'User'}</strong></div>
-      <p className="form-text mb-0">Profile editing is not available through the current backend API.</p>
+    <div className="eg-profile">
+      <div className="eg-profile-header">
+        <span className="eg-profile-avatar">{initials(user?.name)}</span>
+        <div>
+          <h1 className="eg-profile-title">My Profile</h1>
+          <p className="eg-profile-sub">Your account details</p>
+        </div>
+      </div>
+
+      <dl className="eg-profile-list">
+        <div className="eg-profile-row">
+          <dt><i className="fa-regular fa-user" />Full name</dt>
+          <dd>{user?.name || <span className="eg-profile-empty">Not provided</span>}</dd>
+        </div>
+
+        <div className="eg-profile-row">
+          <dt><i className="fa-regular fa-envelope" />Email</dt>
+          <dd>{user?.email || <span className="eg-profile-empty">Not provided</span>}</dd>
+        </div>
+
+        <div className="eg-profile-row">
+          <dt><i className="fa-solid fa-shield-halved" />Account type</dt>
+          <dd><span className="eg-profile-badge">{user?.role || 'user'}</span></dd>
+        </div>
+      </dl>
+
+      <p className="eg-profile-note">Profile editing is coming soon.</p>
     </div>
   );
 }

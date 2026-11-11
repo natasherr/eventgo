@@ -6,7 +6,7 @@ import EventCard from '../components/EventCard';
 
 export default function BrowseEvents() {
   const [params] = useSearchParams();
-  const empty = { q: params.get('q') || '', category: '', from: '', to: '', minPrice: '', maxPrice: '' };
+  const empty = { q: params.get('q') || '', category: params.get('category') || '', from: '', to: '', minPrice: '', maxPrice: '' };
   const [form, setForm] = useState(empty);
   const [applied, setApplied] = useState(empty);
   const [page, setPage] = useState(1);

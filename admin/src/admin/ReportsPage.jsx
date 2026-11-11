@@ -54,7 +54,7 @@ export default function ReportsPage() {
         </div>
 
         <div className="reports-live">
-          <span></span> Sales overview
+          <span></span> Sales Overview
         </div>
       </div>
 

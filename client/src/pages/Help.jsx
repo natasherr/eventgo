@@ -9,7 +9,7 @@ const faqs = [
   ['Why did I get two payment prompts?', 'Each ticket type (Regular, VIP) is booked and paid separately. Buying both means two M-Pesa prompts, one after the other.'],
   ['I started a payment but did not finish. What now?', <>Open <Link to="/my-tickets">My Tickets</Link> to check whether the order is still pending, paid, or failed. You can start a new order from the event page if needed.</>],
   ['I forgot my password.', <>Use <Link to="/forgot-password">Forgot password</Link>. We email a time-limited link that lets you set a new password.</>],
-  ['Can I change my profile details?', <>Your account details are visible under <Link to="/profile">My Profile</Link>. Editing them is not available through the current backend API.</>],
+  ['Can I change my profile details?', <>Your account details are visible under <Link to="/profile">My Profile</Link>. Editing them will be available soon!</>],
 ];
 
 export default function Help() {

@@ -1,5 +1,6 @@
 import { Routes, Route, Outlet } from 'react-router-dom';
 import Navbar from './components/Navbar';
+import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
 import Home from './pages/Home';
 import BrowseEvents from './pages/BrowseEvents';
@@ -13,9 +14,15 @@ import MyTickets from './pages/MyTickets';
 import Profile from './pages/Profile';
 import Help from './pages/Help';
 
-// Shared layout: top navbar + page container.
+// Shared layout: top navbar + page container + footer.
 function CustomerLayout() {
-  return (<><Navbar /><main className="container py-4"><Outlet /></main></>);
+  return (
+    <>
+      <Navbar />
+      <main className="container py-4"><Outlet /></main>
+      <Footer />
+    </>
+  );
 }
 
 export default function App() {

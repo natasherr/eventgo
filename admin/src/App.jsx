@@ -73,7 +73,7 @@ return ( <div className="app-layout"> <aside className="sidebar"> <div className
       <div className="topbar-actions">
         <span className="system-status">
           <span className="status-dot"></span>
-          System online
+          System Status: Online
         </span>
         <button className="icon-button" aria-label="Notifications">
           ♧

@@ -52,7 +52,7 @@ exports.getEventById = async (req, res) => {
 // @route   POST /api/events
 exports.createEvent = async (req, res) => {
   try {
-    const { category_id, title, description, venue, event_date } = req.body;
+    const { category_id, title, description, venue, event_date, banner_image } = req.body;
     
     const event = await Event.create({
       category_id,
@@ -60,6 +60,7 @@ exports.createEvent = async (req, res) => {
       description,
       venue,
       event_date,
+      banner_image: banner_image || null,
       created_by: req.user.user_id, // From the auth middleware
       status: 'published'
     });

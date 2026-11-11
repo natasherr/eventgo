@@ -43,7 +43,7 @@ exports.register = async (req, res) => {
     res.status(201).json({
       message: 'User registered successfully',
       token,
-      user: { id: user.user_id, name: user.full_name, role: user.role }
+      user: { id: user.user_id, name: user.full_name, email: user.email, role: user.role }
     });
 
   } catch (error) {
@@ -108,7 +108,7 @@ exports.login = async (req, res) => {
     res.status(200).json({ 
       message: 'Login Successful!', 
       token, 
-      user: { id: user.user_id, name: user.full_name, role: user.role } 
+      user: { id: user.user_id, name: user.full_name, email: user.email, role: user.role } 
     });
 
   } catch (error) {
@@ -154,7 +154,7 @@ exports.verify2FA = async (req, res) => {
     res.status(200).json({ 
       message: '2FA verification successful', 
       token, 
-      user: { id: user.user_id, name: user.full_name, role: user.role } 
+      user: { id: user.user_id, name: user.full_name, email: user.email, role: user.role } 
     });
 
   } catch (error) {
