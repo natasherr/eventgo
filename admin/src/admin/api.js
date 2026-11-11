@@ -1,6 +1,5 @@
-// client/src/admin/api.js
 // One place that talks to the backend. Everything else imports from here.
-// The Vite proxy forwards /api -> http://localhost:5000, so we use relative URLs.
+// Uses VITE_API_URL for production (Vercel) or falls back to the Vite proxy for local dev.
 
 const TOKEN_KEY = 'eventgo_admin_token';
 const USER_KEY = 'eventgo_admin_user';
@@ -41,16 +40,19 @@ async function request(path, { method = 'GET', body, auth = false } = {}) {
     if (token) headers.Authorization = `Bearer ${token}`;
   }
 
+  // Use the deployed backend URL from Vercel, or fall back to relative path for local development
+  const baseUrl = import.meta.env.VITE_API_URL || '/api';
+
   let res;
   try {
-    res = await fetch(`/api${path}`, {
+    res = await fetch(`${baseUrl}${path}`, {
       method,
       headers,
       body: body ? JSON.stringify(body) : undefined,
     });
   } catch {
     // fetch only throws on network failure (backend not running, etc.)
-    throw new ApiError('Cannot reach the server. Is the backend running on port 5000?', 0);
+    throw new ApiError('Cannot reach the server. Check your connection.', 0);
   }
 
   // The backend always answers with JSON, but guard against an empty body anyway.
@@ -74,17 +76,18 @@ export async function loginRequest(email, password) {
   return request('/auth/login', { method: 'POST', body: { email, password } });
 }
 
+export async function verify2FARequest(email, otp) {
+  return request('/auth/verify-2fa', {
+    method: 'POST',
+    body: { email, otp },
+  });
+}
+
 // ---- Events ---------------------------------------------------------------
-// GET returns an ARRAY of events, each shaped like:
-// { event_id, title, description, venue, event_date, status, created_at,
-//   Category: { category_id, name, ... },
-//   TicketTypes: [{ ticket_type_id, name, price, quantity_total }] }
-// NOTE: it only returns events whose status is 'published'.
 export async function fetchEvents() {
   return request('/events');
 }
 
-// Body: { category_id, title, description, venue, event_date (ISO string), banner_image? }
 export async function createEvent(payload) {
   return request('/events', { method: 'POST', body: payload, auth: true });
 }
@@ -93,23 +96,19 @@ export async function fetchCategories() {
   return request('/categories');
 }
 
-// Body: { name, price, quantity_total }
 export async function createTicketType(eventId, payload) {
   return request(`/events/${eventId}/ticket-types`, { method: 'POST', body: payload, auth: true });
 }
-// ---- Tickets & Sales ------------------------------------------------------
 
+// ---- Tickets & Sales ------------------------------------------------------
 export async function fetchOrders() {
   return request('/admin/orders', { auth: true });
 }
-export async function verify2FARequest(email, otp) {
-  return request('/auth/verify-2fa', {
-    method: 'POST',
-    body: { email, otp },
-  });
-}
+
 export async function fetchSalesReport() {
   return request('/admin/sales-by-event', { auth: true });
-}export async function fetchAuditLogs() {
+}
+
+export async function fetchAuditLogs() {
   return request('/admin/audit-logs', { auth: true });
 }
