@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 
 // Icons use inline SVG so there's no FA dependency in the admin app.
@@ -55,7 +55,7 @@ export default function AdminLayout() {
     <div className="shell">
       <aside className="sidebar">
         {/* Brand */}
-        <div className="brand">
+        <Link to="/admin" className="brand" aria-label="Go to dashboard">
           <span className="brand__logo">
             <img src="/logo-icon.png" alt="EventGo logo" />
           </span>
@@ -63,7 +63,7 @@ export default function AdminLayout() {
             <strong>EventGo</strong>
             <small>ADMINISTRATION</small>
           </div>
-        </div>
+        </Link>
 
         {/* Nav */}
         <nav>

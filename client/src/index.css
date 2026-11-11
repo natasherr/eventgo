@@ -959,3 +959,35 @@ body:has(.eg-auth-wrap) {
   .eg-profile-list { padding: 4px 20px; }
   .eg-profile-note { padding: 14px 20px; }
 }
+
+
+/* ── Navbar logout: turns red on hover ── */
+.eg-navbar .eg-nav-logout:hover,
+.eg-navbar .eg-nav-logout:focus-visible {
+  background: rgba(239, 68, 68, .18);
+  border-color: rgba(252, 165, 165, .75);
+  color: #fecaca;
+}
+
+/* ── Navbar buttons: grow slightly on hover ── */
+.eg-navbar .eg-nav-user,
+.eg-navbar .eg-nav-logout,
+.eg-navbar .eg-nav-auth .nav-link {
+  transition: background .18s, border-color .18s, color .18s, transform .18s ease;
+}
+
+@media (hover: hover) and (min-width: 768px) {
+  .eg-navbar .eg-nav-user:hover,
+  .eg-navbar .eg-nav-logout:hover,
+  .eg-navbar .eg-nav-auth .nav-link:hover {
+    transform: scale(1.06);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eg-navbar .eg-nav-user:hover,
+  .eg-navbar .eg-nav-logout:hover,
+  .eg-navbar .eg-nav-auth .nav-link:hover {
+    transform: none;
+  }
+}

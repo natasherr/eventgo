@@ -1663,3 +1663,20 @@ a.btn:hover {
     radial-gradient(circle at 80% 15%, rgba(13,148,136,.25), transparent 45%),
     #0f172a;
 }
+
+/* ── Navbar main links: grow slightly on hover ── */
+.eg-navbar .eg-nav-links .nav-link {
+  transition: color .2s, background .2s, transform .18s ease;
+}
+
+@media (hover: hover) and (min-width: 768px) {
+  .eg-navbar .eg-nav-links .nav-link:hover {
+    transform: scale(1.06);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eg-navbar .eg-nav-links .nav-link:hover {
+    transform: none;
+  }
+}
