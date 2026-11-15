@@ -29,6 +29,12 @@ const formatDate = (date) =>
 
 // ── Edit User Modal ────────────────────────────────────────────────────────────
 function EditUserModal({ user, currentAdminRole, onClose, onSaved }) {
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
   const [role, setRole] = useState(user.role);
   const [isActive, setIsActive] = useState(user.is_active);
   const [submitting, setSubmitting] = useState(false);

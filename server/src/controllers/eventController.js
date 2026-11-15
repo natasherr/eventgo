@@ -1,3 +1,11 @@
+/**
+ * eventController.js
+ * Handles public and admin event endpoints: browsing, detail view,
+ * event creation/editing/deletion, and ticket type management.
+ * Public routes return only 'published' events; admin routes return all statuses.
+ */
+
+
 const { Op } = require('sequelize');
 const { Event, Category, TicketType, User } = require('../models');
 

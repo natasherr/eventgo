@@ -1,3 +1,9 @@
+/**
+ * adminController.js
+ * Handles all admin-only API endpoints: dashboard stats, sales reports,
+ * orders, audit logs, and user management.
+ */
+
 const {
   Order,
   Payment,
@@ -11,96 +17,87 @@ const {
 const { fn, col } = require('sequelize');
 const { logAction } = require('../utils/auditLogger');
 
-// @desc Get dashboard stats and recent sales
-// @route GET /api/admin/dashboard
-// @access Admin
+// @desc    Get dashboard stats and recent sales
+// @route   GET /api/admin/dashboard
+// @access  Admin
 exports.getDashboardStats = async (req, res) => {
-try {
-const revenueData = await Payment.sum('amount', {
-where: { status: 'success' }
-});
+  try {
+    // Sum only payments that completed successfully via M-Pesa
+    const revenueData = await Payment.sum('amount', {
+      where: { status: 'success' }
+    });
 
+    const totalRevenue = revenueData || 0;
+    const totalTickets = await Ticket.count();
+    const totalEvents  = await Event.count();
 
-const totalRevenue = revenueData || 0;
-const totalTickets = await Ticket.count();
-const totalEvents = await Event.count();
+    // Fetch the 5 most recent paid orders for the dashboard feed
+    const recentSales = await Order.findAll({
+      where: { status: 'paid' },
+      limit: 5,
+      order: [['created_at', 'DESC']],
+      include: [
+        {
+          model: Payment,
+          attributes: ['amount', 'mpesa_receipt']
+        }
+      ]
+    });
 
-const recentSales = await Order.findAll({
-  where: { status: 'paid' },
-  limit: 5,
-  order: [['created_at', 'DESC']],
-  include: [
-    {
-      model: Payment,
-      attributes: ['amount', 'mpesa_receipt']
-    }
-  ]
-});
+    res.status(200).json({
+      stats: { totalRevenue, totalTickets, totalEvents },
+      recentSales
+    });
 
-res.status(200).json({
-  stats: {
-    totalRevenue,
-    totalTickets,
-    totalEvents
-  },
-  recentSales
-});
-
-
-} catch (error) {
-console.error('Dashboard stats error:', error);
-res.status(500).json({
-message: 'Error fetching dashboard stats'
-});
-}
+  } catch (error) {
+    console.error('Dashboard stats error:', error);
+    res.status(500).json({ message: 'Error fetching dashboard stats' });
+  }
 };
 
-// @desc Get sales grouped by event
-// @route GET /api/admin/sales-by-event
-// @access Admin
+// @desc    Get revenue and ticket totals grouped by event (for Reports page)
+// @route   GET /api/admin/sales-by-event
+// @access  Admin
 exports.getSalesByEvent = async (req, res) => {
-try {
-const sales = await Order.findAll({
-where: { status: 'paid' },
-include: [
-{
-model: TicketType,
-attributes: [],
-include: [
-{
-model: Event,
-attributes: ['title']
-}
-]
-}
-],
-attributes: [
-[col('TicketType.Event.title'), 'eventName'],
-[fn('SUM', col('Order.total_amount')), 'totalRevenue'],
-[fn('SUM', col('Order.quantity')), 'ticketsSold']
-],
-group: [
-'TicketType.Event.event_id',
-'TicketType.Event.title'
-],
-raw: true
-});
+  try {
+    // Join orders → ticket_types → events, aggregate per event
+    const sales = await Order.findAll({
+      where: { status: 'paid' },
+      include: [
+        {
+          model: TicketType,
+          attributes: [],
+          include: [
+            {
+              model: Event,
+              attributes: ['title']
+            }
+          ]
+        }
+      ],
+      attributes: [
+        [col('TicketType.Event.title'), 'eventName'],
+        [fn('SUM', col('Order.total_amount')), 'totalRevenue'],
+        [fn('SUM', col('Order.quantity')),     'ticketsSold']
+      ],
+      group: [
+        'TicketType.Event.event_id',
+        'TicketType.Event.title'
+      ],
+      raw: true
+    });
 
+    res.status(200).json(sales);
 
-res.status(200).json(sales);
-
-
-} catch (error) {
-console.error('Sales report error:', error);
-res.status(500).json({
-message: 'Error generating report'
-});
-}
+  } catch (error) {
+    console.error('Sales report error:', error);
+    res.status(500).json({ message: 'Error generating report' });
+  }
 };
 
-// @desc Get all orders for the admin dashboard
-// @route GET /api/admin/orders
-// @access Admin
+// @desc    Get all orders with user, ticket type, event, and payment details
+// @route   GET /api/admin/orders
+// @access  Admin
 exports.getAllOrders = async (req, res) => {
   try {
     const orders = await Order.findAll({
@@ -121,13 +118,7 @@ exports.getAllOrders = async (req, res) => {
         },
         {
           model: Payment,
-          attributes: [
-            'payment_id',
-            'amount',
-            'status',
-            'mpesa_receipt',
-            'paid_at'
-          ]
+          attributes: ['payment_id', 'amount', 'status', 'mpesa_receipt', 'paid_at']
         }
       ],
       order: [['created_at', 'DESC']]
@@ -136,15 +127,13 @@ exports.getAllOrders = async (req, res) => {
     res.status(200).json(orders);
   } catch (error) {
     console.error('Admin orders error:', error);
-
-    res.status(500).json({
-      message: 'Unable to fetch orders.'
-    });
+    res.status(500).json({ message: 'Unable to fetch orders.' });
   }
 };
-// @desc Get recent security audit logs
-// @route GET /api/admin/audit-logs
-// @access Admin
+
+// @desc    Get recent security audit logs (most recent 100)
+// @route   GET /api/admin/audit-logs
+// @access  Admin
 exports.getAuditLogs = async (req, res) => {
   try {
     const logs = await AuditLog.findAll({
@@ -161,19 +150,17 @@ exports.getAuditLogs = async (req, res) => {
     res.status(200).json(logs);
   } catch (error) {
     console.error('Audit logs error:', error);
-
-    res.status(500).json({
-      message: 'Unable to fetch security activity.'
-    });
+    res.status(500).json({ message: 'Unable to fetch security activity.' });
   }
 };
 
-// @desc    Get all users
+// @desc    Get all registered users
 // @route   GET /api/admin/users
 // @access  Admin
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.findAll({
+      // Exclude sensitive fields like password_hash
       attributes: ['user_id', 'full_name', 'email', 'phone_number', 'role', 'is_active', 'deletion_requested', 'created_at', 'last_login'],
       order: [['created_at', 'DESC']]
     });
@@ -184,7 +171,7 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
-// @desc    Update a user's role or active status
+// @desc    Update a user's role, active status, or deletion request flag
 // @route   PUT /api/admin/users/:id
 // @access  Admin
 exports.updateUser = async (req, res) => {
@@ -199,8 +186,9 @@ exports.updateUser = async (req, res) => {
       return res.status(403).json({ message: 'Only a super admin can assign elevated roles.' });
     }
 
-    if (role !== undefined) user.role = role;
-    if (is_active !== undefined) user.is_active = is_active;
+    // Apply only the fields that were actually sent in the request body
+    if (role !== undefined)               user.role               = role;
+    if (is_active !== undefined)          user.is_active          = is_active;
     if (deletion_requested !== undefined) user.deletion_requested = deletion_requested;
     await user.save();
 
@@ -214,11 +202,11 @@ exports.updateUser = async (req, res) => {
     );
 
     res.status(200).json({
-      user_id: user.user_id,
-      full_name: user.full_name,
-      email: user.email,
-      role: user.role,
-      is_active: user.is_active,
+      user_id:            user.user_id,
+      full_name:          user.full_name,
+      email:              user.email,
+      role:               user.role,
+      is_active:          user.is_active,
       deletion_requested: user.deletion_requested
     });
   } catch (error) {

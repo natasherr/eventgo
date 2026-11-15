@@ -22,6 +22,12 @@ function validateEventForm(form, tickets) {
 
 // ── Edit Modal ─────────────────────────────────────────────────────────────────
 function EditModal({ event, categories, onClose, onSaved }) {
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
   const [form, setForm] = useState({
     category_id: String(event.category_id ?? ''),
     title: event.title ?? '',
@@ -139,6 +145,12 @@ function EditModal({ event, categories, onClose, onSaved }) {
 
 // ── Delete Confirmation Modal ──────────────────────────────────────────────────
 function DeleteModal({ event, onClose, onDeleted }) {
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState('');
 

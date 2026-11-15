@@ -1,3 +1,11 @@
+/**
+ * authController.js
+ * Handles all authentication flows: registration, login, 2FA verification,
+ * password reset, profile updates, and account deletion requests.
+ * JWT tokens are issued on successful login/2FA and expire after 24 hours.
+ */
+
+
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { User, AuthToken } = require('../models');
