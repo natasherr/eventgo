@@ -298,7 +298,9 @@ exports.updateProfile = async (req, res) => {
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     user.full_name = full_name.trim();
-    if (phone_number !== undefined) user.phone_number = phone_number.trim() || null;
+    if (phone_number !== undefined && phone_number.trim()) {
+      user.phone_number = phone_number.trim();
+    }
     await user.save();
 
     await logAction(user.user_id, 'PROFILE_UPDATE', 'User', user.user_id, 'User updated their profile', req.ip);
