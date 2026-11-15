@@ -88,8 +88,20 @@ export async function fetchEvents() {
   return request('/events');
 }
 
+export async function fetchAdminEvents() {
+  return request('/events/admin/list', { auth: true });
+}
+
 export async function createEvent(payload) {
   return request('/events', { method: 'POST', body: payload, auth: true });
+}
+
+export async function updateEvent(eventId, payload) {
+  return request(`/events/${eventId}`, { method: 'PUT', body: payload, auth: true });
+}
+
+export async function deleteEvent(eventId) {
+  return request(`/events/${eventId}`, { method: 'DELETE', auth: true });
 }
 
 export async function fetchCategories() {
@@ -111,4 +123,13 @@ export async function fetchSalesReport() {
 
 export async function fetchAuditLogs() {
   return request('/admin/audit-logs', { auth: true });
+}
+
+// ---- User Management ------------------------------------------------------
+export async function fetchUsers() {
+  return request('/admin/users', { auth: true });
+}
+
+export async function updateUserAdmin(userId, payload) {
+  return request(`/admin/users/${userId}`, { method: 'PUT', body: payload, auth: true });
 }

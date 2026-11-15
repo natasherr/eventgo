@@ -118,3 +118,50 @@ exports.createTicketType = async (req, res) => {
     res.status(500).json({ message: 'Server error creating ticket type' });
   }
 };
+
+// @desc    Update an event (Admin only)
+// @route   PUT /api/events/:id
+exports.updateEvent = async (req, res) => {
+  try {
+    const event = await Event.findByPk(req.params.id);
+    if (!event) return res.status(404).json({ message: 'Event not found' });
+
+    const { category_id, title, description, venue, event_date, banner_image, status } = req.body;
+
+    await event.update({
+      category_id: category_id ?? event.category_id,
+      title: title ?? event.title,
+      description: description ?? event.description,
+      venue: venue ?? event.venue,
+      event_date: event_date ?? event.event_date,
+      banner_image: banner_image ?? event.banner_image,
+      status: status ?? event.status,
+    });
+
+    res.status(200).json(event);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error updating event' });
+  }
+};
+
+// @desc    Delete an event (Admin only)
+// @route   DELETE /api/events/:id
+exports.deleteEvent = async (req, res) => {
+  try {
+    const event = await Event.findByPk(req.params.id);
+    if (!event) return res.status(404).json({ message: 'Event not found' });
+
+    await event.destroy();
+    res.status(200).json({ message: 'Event deleted successfully' });
+  } catch (error) {
+    console.error(error);
+    // Foreign key constraint: event has ticket types, orders or payments linked
+    if (error.name === 'SequelizeForeignKeyConstraintError') {
+      return res.status(409).json({
+        message: 'Cannot delete this event because it has ticket types, orders or payments linked to it. Cancel the event instead.'
+      });
+    }
+    res.status(500).json({ message: 'Server error deleting event' });
+  }
+};

@@ -1,44 +1,41 @@
 import { useEffect, useState } from 'react';
-import { createEvent, createTicketType, fetchCategories } from './api';
+import { createEvent, createTicketType, fetchCategories, updateEvent, deleteEvent } from './api';
 import { useEvents, formatDate } from './useEvents';
 
-const EMPTY_FORM = { category_id: '', title: '', description: '', venue: '', event_date: '' };
+const EMPTY_FORM = { category_id: '', title: '', description: '', venue: '', event_date: '', status: 'published' };
 const EMPTY_TICKET = { name: '', price: '', quantity_total: '' };
 
-export default function EventsPage() {
-  const { events, loading, error, reload } = useEvents();
-  const [form, setForm] = useState(EMPTY_FORM);
+// ── Shared field-level validation ──────────────────────────────────────────────
+function validateEventForm(form, tickets) {
+  const next = {};
+  if (!form.title.trim()) next.title = 'Give the event a title.';
+  if (!form.category_id) next.category_id = 'Choose a category.';
+  if (!form.venue.trim()) next.venue = 'Enter the venue.';
+  if (!form.event_date) next.event_date = 'Pick the date and time.';
+  tickets.forEach((t, i) => {
+    if (!t.name.trim()) next[`ticket_name_${i}`] = 'Enter a ticket name.';
+    if (!t.price || isNaN(Number(t.price)) || Number(t.price) < 0) next[`ticket_price_${i}`] = 'Enter a valid price (0 for free).';
+    if (!t.quantity_total || !Number.isInteger(Number(t.quantity_total)) || Number(t.quantity_total) < 1) next[`ticket_qty_${i}`] = 'Enter a quantity (min 1).';
+  });
+  return next;
+}
+
+// ── Edit Modal ─────────────────────────────────────────────────────────────────
+function EditModal({ event, categories, onClose, onSaved }) {
+  const [form, setForm] = useState({
+    category_id: String(event.category_id ?? ''),
+    title: event.title ?? '',
+    description: event.description ?? '',
+    venue: event.venue ?? '',
+    // Convert ISO date to datetime-local format (strip seconds/ms)
+    event_date: event.event_date ? new Date(event.event_date).toISOString().slice(0, 16) : '',
+    status: event.status ?? 'published',
+  });
   const [errors, setErrors] = useState({});
-  const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  // Ticket types: array of { name, price, quantity_total }
-  const [tickets, setTickets] = useState([{ ...EMPTY_TICKET }]);
-
-  function addTicket() {
-    setTickets((t) => [...t, { ...EMPTY_TICKET }]);
-  }
-
-  function removeTicket(i) {
-    setTickets((t) => t.filter((_, idx) => idx !== i));
-  }
-
-  function updateTicket(i, field) {
-    return (e) => setTickets((t) => t.map((row, idx) => idx === i ? { ...row, [field]: e.target.value } : row));
-  }
-
-  // Categories fetched from the live API
-  const [categories, setCategories] = useState([]);
-  useEffect(() => {
-    fetchCategories()
-      .then((data) => setCategories(Array.isArray(data) ? data : (data?.categories ?? [])))
-      .catch(() => setCategories([]));
-  }, []);
-
-  function update(field) {
-    return (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
-  }
+  const update = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
 
   function validate() {
     const next = {};
@@ -46,19 +43,173 @@ export default function EventsPage() {
     if (!form.category_id) next.category_id = 'Choose a category.';
     if (!form.venue.trim()) next.venue = 'Enter the venue.';
     if (!form.event_date) next.event_date = 'Pick the date and time.';
-    tickets.forEach((t, i) => {
-      if (!t.name.trim()) next[`ticket_name_${i}`] = 'Enter a ticket name.';
-      if (!t.price || isNaN(Number(t.price)) || Number(t.price) < 0) next[`ticket_price_${i}`] = 'Enter a valid price (0 for free).';
-      if (!t.quantity_total || !Number.isInteger(Number(t.quantity_total)) || Number(t.quantity_total) < 1) next[`ticket_qty_${i}`] = 'Enter a quantity (min 1).';
-    });
     return next;
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
     setServerError('');
-    setSuccess('');
     const found = validate();
+    setErrors(found);
+    if (Object.keys(found).length) return;
+    setSubmitting(true);
+    try {
+      await updateEvent(event.event_id, {
+        category_id: Number(form.category_id),
+        title: form.title.trim(),
+        description: form.description.trim(),
+        venue: form.venue.trim(),
+        event_date: new Date(form.event_date).toISOString(),
+        status: form.status,
+      });
+      onSaved();
+    } catch (err) {
+      setServerError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-box" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
+        <div className="modal-header">
+          <h2 id="edit-modal-title">Edit Event</h2>
+          <button className="modal-close" onClick={onClose} aria-label="Close">✕</button>
+        </div>
+
+        {serverError && <div className="alert alert--error" role="alert">{serverError}</div>}
+
+        <form onSubmit={handleSubmit} noValidate>
+          <div className="ef-field">
+            <label className="ef-label" htmlFor="edit-title">Event title *</label>
+            <input id="edit-title" className={`ef-input${errors.title ? ' ef-input--error' : ''}`} value={form.title} onChange={update('title')} />
+            {errors.title && <span className="ef-error">{errors.title}</span>}
+          </div>
+
+          <div className="ef-field">
+            <label className="ef-label" htmlFor="edit-category">Category *</label>
+            <select id="edit-category" className={`ef-input${errors.category_id ? ' ef-input--error' : ''}`} value={form.category_id} onChange={update('category_id')}>
+              <option value="">Select a category…</option>
+              {categories.map((c) => (
+                <option key={c.category_id} value={c.category_id}>{c.name}</option>
+              ))}
+            </select>
+            {errors.category_id && <span className="ef-error">{errors.category_id}</span>}
+          </div>
+
+          <div className="ef-field">
+            <label className="ef-label" htmlFor="edit-venue">Venue *</label>
+            <input id="edit-venue" className={`ef-input${errors.venue ? ' ef-input--error' : ''}`} value={form.venue} onChange={update('venue')} />
+            {errors.venue && <span className="ef-error">{errors.venue}</span>}
+          </div>
+
+          <div className="ef-field">
+            <label className="ef-label" htmlFor="edit-date">Date &amp; time *</label>
+            <input id="edit-date" type="datetime-local" className={`ef-input${errors.event_date ? ' ef-input--error' : ''}`} value={form.event_date} onChange={update('event_date')} />
+            {errors.event_date && <span className="ef-error">{errors.event_date}</span>}
+          </div>
+
+          <div className="ef-field">
+            <label className="ef-label" htmlFor="edit-status">Status</label>
+            <select id="edit-status" className="ef-input" value={form.status} onChange={update('status')}>
+              <option value="published">Published</option>
+              <option value="draft">Draft</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="completed">Completed</option>
+            </select>
+          </div>
+
+          <div className="ef-field">
+            <label className="ef-label" htmlFor="edit-description">Description</label>
+            <textarea id="edit-description" className="ef-input ef-textarea" rows={3} value={form.description} onChange={update('description')} />
+          </div>
+
+          <div className="modal-actions">
+            <button type="button" className="btn-secondary" onClick={onClose} disabled={submitting}>Cancel</button>
+            <button type="submit" className="ef-submit-btn" disabled={submitting}>
+              {submitting ? 'Saving…' : 'Save changes'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ── Delete Confirmation Modal ──────────────────────────────────────────────────
+function DeleteModal({ event, onClose, onDeleted }) {
+  const [submitting, setSubmitting] = useState(false);
+  const [serverError, setServerError] = useState('');
+
+  async function handleDelete() {
+    setSubmitting(true);
+    setServerError('');
+    try {
+      await deleteEvent(event.event_id);
+      onDeleted();
+    } catch (err) {
+      setServerError(err.message);
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-box modal-box--sm" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
+        <div className="modal-header">
+          <h2 id="delete-modal-title">Delete Event</h2>
+          <button className="modal-close" onClick={onClose} aria-label="Close">✕</button>
+        </div>
+        <p>Are you sure you want to permanently delete <strong>{event.title}</strong>? This action cannot be undone.</p>
+        {serverError && <div className="alert alert--error" role="alert">{serverError}</div>}
+        <div className="modal-actions">
+          <button type="button" className="btn-secondary" onClick={onClose} disabled={submitting}>Cancel</button>
+          <button type="button" className="btn-danger" onClick={handleDelete} disabled={submitting}>
+            {submitting ? 'Deleting…' : 'Yes, delete'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Page ──────────────────────────────────────────────────────────────────
+export default function EventsPage() {
+  const { events, loading, error, reload } = useEvents({ admin: true });
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [serverError, setServerError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  // Ticket types for create form
+  const [tickets, setTickets] = useState([{ ...EMPTY_TICKET }]);
+
+  // Modal state
+  const [editTarget, setEditTarget] = useState(null);   // event object being edited
+  const [deleteTarget, setDeleteTarget] = useState(null); // event object being deleted
+
+  function addTicket() { setTickets((t) => [...t, { ...EMPTY_TICKET }]); }
+  function removeTicket(i) { setTickets((t) => t.filter((_, idx) => idx !== i)); }
+  function updateTicket(i, field) {
+    return (e) => setTickets((t) => t.map((row, idx) => idx === i ? { ...row, [field]: e.target.value } : row));
+  }
+
+  const [categories, setCategories] = useState([]);
+  useEffect(() => {
+    fetchCategories()
+      .then((data) => setCategories(Array.isArray(data) ? data : (data?.categories ?? [])))
+      .catch(() => setCategories([]));
+  }, []);
+
+  const update = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setServerError('');
+    setSuccess('');
+    const found = validateEventForm(form, tickets);
     setErrors(found);
     if (Object.keys(found).length) return;
 
@@ -71,7 +222,6 @@ export default function EventsPage() {
         venue: form.venue.trim(),
         event_date: new Date(form.event_date).toISOString(),
       });
-      // Create each ticket type against the new event_id
       await Promise.all(
         tickets.map((t) =>
           createTicketType(created.event_id, {
@@ -94,11 +244,28 @@ export default function EventsPage() {
 
   return (
     <div className="admin-page">
+      {/* ── Modals ── */}
+      {editTarget && (
+        <EditModal
+          event={editTarget}
+          categories={categories}
+          onClose={() => setEditTarget(null)}
+          onSaved={async () => { setEditTarget(null); await reload(); }}
+        />
+      )}
+      {deleteTarget && (
+        <DeleteModal
+          event={deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onDeleted={async () => { setDeleteTarget(null); await reload(); }}
+        />
+      )}
+
       {/* ── Page header ── */}
       <div className="page-head">
         <div>
           <h1>Manage Events</h1>
-          <p className="muted">Create and publish events to the platform.</p>
+          <p className="muted">Create, edit and delete events on the platform.</p>
         </div>
       </div>
 
@@ -119,7 +286,6 @@ export default function EventsPage() {
 
             {/* ── Left column ── */}
             <div className="ef-col">
-
               <div className="ef-field">
                 <label className="ef-label" htmlFor="ef-title">Event title *</label>
                 <input
@@ -175,13 +341,10 @@ export default function EventsPage() {
                 />
                 {errors.event_date && <span className="ef-error">{errors.event_date}</span>}
               </div>
-
             </div>
 
             {/* ── Right column ── */}
             <div className="ef-col">
-
-              {/* Description */}
               <div className="ef-field">
                 <label className="ef-label" htmlFor="ef-description">Description</label>
                 <textarea
@@ -200,7 +363,7 @@ export default function EventsPage() {
                   <label className="ef-label">Ticket types *</label>
                   <button type="button" className="ef-add-ticket-btn" onClick={addTicket}>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-                    Add type
+                    Add Type
                   </button>
                 </div>
 
@@ -257,7 +420,6 @@ export default function EventsPage() {
                   ))}
                 </div>
               </div>
-
             </div>
           </div>
 
@@ -287,12 +449,12 @@ export default function EventsPage() {
       {/* ── Events table ── */}
       <section className="card">
         <div className="page-head" style={{ marginBottom: '16px' }}>
-          <h2>Published events</h2>
+          <h2>All Events</h2>
           <span className="badge">{events.length} events</span>
         </div>
         {loading && <p className="muted">Loading events…</p>}
         {error && <div className="alert alert--error" role="alert">{error}</div>}
-        {!loading && !error && events.length === 0 && <p className="muted">No published events yet.</p>}
+        {!loading && !error && events.length === 0 && <p className="muted">No events yet.</p>}
 
         {events.length > 0 && (
           <div style={{ overflowX: 'auto' }}>
@@ -305,6 +467,7 @@ export default function EventsPage() {
                   <th>Date</th>
                   <th>Ticket types</th>
                   <th>Status</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -316,6 +479,26 @@ export default function EventsPage() {
                     <td>{formatDate(ev.event_date)}</td>
                     <td>{ev.TicketTypes?.length ? ev.TicketTypes.map((t) => t.name).join(', ') : <span className="muted">None yet</span>}</td>
                     <td><span className={`ef-status-badge ef-status-badge--${ev.status}`}>{ev.status}</span></td>
+                    <td>
+                      <div className="row-actions">
+                        <button
+                          className="action-btn action-btn--edit"
+                          onClick={() => setEditTarget(ev)}
+                          title="Edit event"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                          Edit
+                        </button>
+                        <button
+                          className="action-btn action-btn--delete"
+                          onClick={() => setDeleteTarget(ev)}
+                          title="Delete event"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                          Delete
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>

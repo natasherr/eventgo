@@ -1,9 +1,10 @@
 // client/src/admin/useEvents.js
 // Shared by the Dashboard and the Manage Events page so both read the same data.
 import { useCallback, useEffect, useState } from 'react';
-import { fetchEvents } from './api';
+import { fetchAdminEvents, fetchEvents } from './api';
 
-export function useEvents() {
+// Pass admin:true to fetch all events (including drafts/cancelled) for the admin panel.
+export function useEvents({ admin = false } = {}) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -12,13 +13,13 @@ export function useEvents() {
     setLoading(true);
     setError('');
     try {
-      setEvents(await fetchEvents());
+      setEvents(admin ? await fetchAdminEvents() : await fetchEvents());
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [admin]);
 
   useEffect(() => {
     reload();

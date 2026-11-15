@@ -47,7 +47,7 @@ export default function Dashboard() {
       <div className="page-head">
         <div>
           <h1>Dashboard</h1>
-          <p className="muted">Welcome back! Here's what's happening with your events.</p>
+          <p className="muted">Welcome back! Here&apos;s what&apos;s happening with your events.</p>
         </div>
         <Link className="btn" to="/admin/events">
           <svg

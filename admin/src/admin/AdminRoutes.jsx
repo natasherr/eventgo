@@ -2,16 +2,22 @@
 //
 // Wires everything together: login, protected layout, dashboard, events, shells.
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import { AuthProvider } from './AuthContext';
+import { AuthProvider, useAuth } from './AuthContext';
 import ProtectedRoute from './ProtectedRoute';
 import LoginPage from './LoginPage';
 import EventsPage from './EventsPage';
 import TicketsSalesPage from './TicketsSalesPage';
 import AdminLayout from './AdminLayout';
 import Dashboard from './Dashboard';
-import ComingSoon from './ComingSoon';
 import ReportsPage from './ReportsPage';
 import SecurityPage from './SecurityPage';
+import UsersPage from './UsersPage';
+
+// Wrapper so UsersPage can receive the current admin's role
+function UsersPageWrapper() {
+  const { user } = useAuth();
+  return <UsersPage currentAdminRole={user?.role} />;
+}
 
 export default function AdminRoutes() {
   return (
@@ -28,6 +34,7 @@ export default function AdminRoutes() {
               <Route path="tickets" element={<TicketsSalesPage />} />
               <Route path="reports" element={<ReportsPage />} />
               <Route path="security" element={<SecurityPage />} />
+              <Route path="users" element={<UsersPageWrapper />} />
             </Route>
           </Route>
 

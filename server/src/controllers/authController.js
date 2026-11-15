@@ -70,8 +70,8 @@ exports.login = async (req, res) => {
 
     await logAction(user.user_id, 'USER_LOGIN', 'User', user.user_id, 'User logged in successfully', req.ip);
 
-    // If user is ADMIN, trigger 2FA
-    if (user.role === 'admin') {
+    // If user has an elevated role, trigger 2FA
+    if (['admin', 'supervisor', 'super_admin'].includes(user.role)) {
       const crypto = require('crypto');
       
       // Generate a 6-digit OTP
@@ -258,5 +258,57 @@ exports.resetPassword = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error during password reset' });
+  }
+};
+
+// @desc    Request account deletion (sets deletion_requested flag)
+// @route   POST /api/auth/deletion-request
+exports.requestDeletion = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.user_id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (user.deletion_requested) {
+      return res.status(400).json({ message: 'Deletion request already submitted.' });
+    }
+
+    user.deletion_requested = true;
+    await user.save();
+
+    await logAction(user.user_id, 'DELETION_REQUESTED', 'User', user.user_id, 'User requested account deletion', req.ip);
+
+    res.status(200).json({ message: 'Your account deletion request has been submitted. An administrator will review it shortly.' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error during deletion request' });
+  }
+};
+
+// @desc    Update logged-in user's profile (full_name, phone_number)
+// @route   PUT /api/auth/profile
+exports.updateProfile = async (req, res) => {
+  try {
+    const { full_name, phone_number } = req.body;
+
+    if (!full_name || !full_name.trim()) {
+      return res.status(400).json({ message: 'Full name is required.' });
+    }
+
+    const user = await User.findByPk(req.user.user_id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    user.full_name = full_name.trim();
+    if (phone_number !== undefined) user.phone_number = phone_number.trim() || null;
+    await user.save();
+
+    await logAction(user.user_id, 'PROFILE_UPDATE', 'User', user.user_id, 'User updated their profile', req.ip);
+
+    res.status(200).json({
+      message: 'Profile updated successfully.',
+      user: { id: user.user_id, name: user.full_name, email: user.email, role: user.role }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error during profile update' });
   }
 };

@@ -34,7 +34,8 @@ export function AuthProvider({ children }) {
     }
 
     // Normal customer accounts cannot access the admin panel.
-    if (data.user?.role !== 'admin') {
+    const ADMIN_ROLES = ['admin', 'supervisor', 'super_admin'];
+    if (!ADMIN_ROLES.includes(data.user?.role)) {
       throw new Error(
         'This account does not have administrator access.'
       );
@@ -50,7 +51,8 @@ export function AuthProvider({ children }) {
 
     const data = await verify2FARequest(pendingEmail, otp);
 
-    if (data.user?.role !== 'admin' || !data.token) {
+    const ADMIN_ROLES = ['admin', 'supervisor', 'super_admin'];
+    if (!ADMIN_ROLES.includes(data.user?.role) || !data.token) {
       throw new Error('Administrator verification failed.');
     }
 

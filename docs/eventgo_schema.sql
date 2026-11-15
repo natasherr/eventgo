@@ -11,8 +11,9 @@ CREATE TABLE users (
     email VARCHAR(150) NOT NULL UNIQUE,
     phone_number VARCHAR(15) NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
-    role ENUM('user', 'admin') NOT NULL DEFAULT 'user',
+    role ENUM('user', 'admin', 'supervisor', 'super_admin') NOT NULL DEFAULT 'user',
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    deletion_requested BOOLEAN NOT NULL DEFAULT FALSE,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_login DATETIME,
     CHECK (phone_number REGEXP '^254[17][0-9]{8}$')

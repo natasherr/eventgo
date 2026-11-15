@@ -9,6 +9,7 @@ const {
 } = require('../models');
 
 const { fn, col } = require('sequelize');
+const { logAction } = require('../utils/auditLogger');
 
 // @desc Get dashboard stats and recent sales
 // @route GET /api/admin/dashboard
@@ -164,5 +165,64 @@ exports.getAuditLogs = async (req, res) => {
     res.status(500).json({
       message: 'Unable to fetch security activity.'
     });
+  }
+};
+
+// @desc    Get all users
+// @route   GET /api/admin/users
+// @access  Admin
+exports.getAllUsers = async (req, res) => {
+  try {
+    const users = await User.findAll({
+      attributes: ['user_id', 'full_name', 'email', 'phone_number', 'role', 'is_active', 'deletion_requested', 'created_at', 'last_login'],
+      order: [['created_at', 'DESC']]
+    });
+    res.status(200).json(users);
+  } catch (error) {
+    console.error('Get users error:', error);
+    res.status(500).json({ message: 'Unable to fetch users.' });
+  }
+};
+
+// @desc    Update a user's role or active status
+// @route   PUT /api/admin/users/:id
+// @access  Admin
+exports.updateUser = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const { role, is_active, deletion_requested } = req.body;
+
+    // Only super_admin can promote to super_admin or supervisor
+    if ((role === 'super_admin' || role === 'supervisor') && req.user.role !== 'super_admin') {
+      return res.status(403).json({ message: 'Only a super admin can assign elevated roles.' });
+    }
+
+    if (role !== undefined) user.role = role;
+    if (is_active !== undefined) user.is_active = is_active;
+    if (deletion_requested !== undefined) user.deletion_requested = deletion_requested;
+    await user.save();
+
+    await logAction(
+      req.user.user_id,
+      'USER_UPDATED',
+      'User',
+      user.user_id,
+      `Role set to ${user.role}, active: ${user.is_active}`,
+      req.ip
+    );
+
+    res.status(200).json({
+      user_id: user.user_id,
+      full_name: user.full_name,
+      email: user.email,
+      role: user.role,
+      is_active: user.is_active,
+      deletion_requested: user.deletion_requested
+    });
+  } catch (error) {
+    console.error('Update user error:', error);
+    res.status(500).json({ message: 'Unable to update user.' });
   }
 };

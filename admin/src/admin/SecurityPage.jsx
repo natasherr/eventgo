@@ -4,6 +4,8 @@ import { fetchAuditLogs } from './api';
 export default function SecurityPage() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  // null = not yet known, true = loaded OK, false = fetch failed
+  const [logsOk, setLogsOk] = useState(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -11,8 +13,10 @@ export default function SecurityPage() {
       try {
         const data = await fetchAuditLogs();
         setLogs(Array.isArray(data) ? data : []);
+        setLogsOk(true);
       } catch (err) {
         setError(err.message || 'Unable to load security activity.');
+        setLogsOk(false);
       } finally {
         setLoading(false);
       }
@@ -20,6 +24,11 @@ export default function SecurityPage() {
 
     loadLogs();
   }, []);
+
+  // Badge config based on fetch result
+  const badgeColor  = logsOk === null ? '#94a3b8' : logsOk ? '#22c55e' : '#ef4444';
+  const badgeLabel  = logsOk === null ? 'Checking…' : logsOk ? 'Audit logs active' : 'Audit logs unavailable';
+  const badgeClass  = `security-status${logsOk === false ? ' security-status--error' : ''}`;
 
   const formatDate = (date) => {
     if (!date) return '—';
@@ -56,10 +65,6 @@ export default function SecurityPage() {
     return <div className="security-loading">Loading security activity...</div>;
   }
 
-  if (error) {
-    return <div className="alert alert--error">{error}</div>;
-  }
-
   return (
     <div className="admin-page security-page">
 
@@ -70,11 +75,15 @@ export default function SecurityPage() {
           <p>Monitor administrator and system activity.</p>
         </div>
 
-        <div className="security-status">
-          <span></span>
-          Audit logs active
+        <div className={badgeClass}>
+          <svg width="8" height="8" viewBox="0 0 8 8" aria-hidden="true" style={{ flexShrink: 0 }}>
+            <circle cx="4" cy="4" r="4" fill={badgeColor} />
+          </svg>
+          {badgeLabel}
         </div>
       </div>
+
+      {error && <div className="alert alert--error" role="alert">{error}</div>}
 
       <div className="security-stats">
 

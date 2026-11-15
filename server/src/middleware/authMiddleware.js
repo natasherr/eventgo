@@ -1,5 +1,8 @@
 const jwt = require('jsonwebtoken');
 
+// Roles with elevated privileges (can access admin-protected routes)
+const ADMIN_ROLES = ['admin', 'supervisor', 'super_admin'];
+
 // Protect routes (Requires Login)
 exports.protect = (req, res, next) => {
   let token;
@@ -13,7 +16,7 @@ exports.protect = (req, res, next) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       
       // Attach user info to the request object
-      req.user = decoded; 
+      req.user = decoded;
       next();
     } catch (error) {
       return res.status(401).json({ message: 'Not authorized, token failed' });
@@ -25,11 +28,20 @@ exports.protect = (req, res, next) => {
   }
 };
 
-// Admin only access
+// Admin, Supervisor, or Super Admin access
 exports.adminOnly = (req, res, next) => {
-  if (req.user && req.user.role === 'admin') {
+  if (req.user && ADMIN_ROLES.includes(req.user.role)) {
     next();
   } else {
     return res.status(403).json({ message: 'Access denied. Admin only.' });
+  }
+};
+
+// Super Admin only — highest privilege level
+exports.superAdminOnly = (req, res, next) => {
+  if (req.user && req.user.role === 'super_admin') {
+    next();
+  } else {
+    return res.status(403).json({ message: 'Access denied. Super admin only.' });
   }
 };

@@ -1,5 +1,31 @@
+import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
+
+// ── Live server health check ───────────────────────────────────────────────────
+// Pings GET /api/health every 30 s. States: 'checking' | 'online' | 'offline'
+function useServerStatus() {
+  const [status, setStatus] = useState('checking');
+
+  useEffect(() => {
+    const baseUrl = import.meta.env.VITE_API_URL || '/api';
+
+    async function ping() {
+      try {
+        const res = await fetch(`${baseUrl}/health`, { method: 'GET' });
+        setStatus(res.ok ? 'online' : 'offline');
+      } catch {
+        setStatus('offline');
+      }
+    }
+
+    ping(); // immediate first check
+    const interval = setInterval(ping, 30_000); // re-check every 30 s
+    return () => clearInterval(interval);
+  }, []);
+
+  return status;
+}
 
 // Icons use inline SVG so there's no FA dependency in the admin app.
 const ICONS = {
@@ -32,19 +58,65 @@ const ICONS = {
       <path d="m9 12 2 2 4-4" />
     </svg>
   ),
+  users: (
+    <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  ),
 };
 
 const MENU = [
-  { to: '/admin', label: 'Dashboard',      icon: ICONS.dashboard, end: true },
-  { to: '/admin/events',   label: 'Events',         icon: ICONS.events },
+  { to: '/admin',          label: 'Dashboard',       icon: ICONS.dashboard, end: true },
+  { to: '/admin/events',   label: 'Events',          icon: ICONS.events },
   { to: '/admin/tickets',  label: 'Tickets & Sales', icon: ICONS.tickets },
   { to: '/admin/reports',  label: 'Reports',         icon: ICONS.reports },
+  { to: '/admin/users',    label: 'Users',           icon: ICONS.users },
   { to: '/admin/security', label: 'Security',        icon: ICONS.security },
 ];
+
+// Time-of-day helpers
+function getSalutation() {
+  const h = new Date().getHours();
+  return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+}
+
+function getTodayLabel() {
+  return new Date().toLocaleDateString('en-KE', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+  }).toUpperCase();
+}
+
+function getTimeOfDay() {
+  const h = new Date().getHours();
+  return h < 17 ? 'day' : 'night';
+}
+
+const SUN_ICON = (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+  </svg>
+);
+
+const MOON_ICON = (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+  </svg>
+);
+
+// Status dot colours
+const STATUS_COLOR = { checking: '#94a3b8', online: '#22c55e', offline: '#ef4444' };
+const STATUS_LABEL = { checking: 'Checking…', online: 'Online', offline: 'Offline' };
 
 export default function AdminLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const serverStatus = useServerStatus();
 
   function handleLogout() {
     logout();
@@ -113,12 +185,24 @@ export default function AdminLayout() {
 
       <div className="main">
         <header className="topbar">
-          <span className="muted">EventGo &rsaquo; Admin</span>
-          <span className="status">
+          <span className="topbar-greeting">
+            <span className="topbar-greeting__eyebrow">
+              {getTimeOfDay() === 'day' ? SUN_ICON : MOON_ICON}
+              {getTodayLabel()}
+            </span>
+            <span className="topbar-greeting__hello">
+              {getSalutation()},{' '}
+              <span className="topbar-greeting__name">{user?.name || 'Admin'}</span>
+            </span>
+            <span className="topbar-greeting__sub">
+              Welcome back to the EventGo Admin Panel
+            </span>
+          </span>
+          <span className={`status${serverStatus === 'offline' ? ' status--offline' : ''}`}>
             <svg width="8" height="8" viewBox="0 0 8 8" aria-hidden="true">
-              <circle cx="4" cy="4" r="4" fill="#22c55e" />
+              <circle cx="4" cy="4" r="4" fill={STATUS_COLOR[serverStatus]} />
             </svg>
-            System Status: Online
+            System Status: {STATUS_LABEL[serverStatus]}
           </span>
         </header>
 
