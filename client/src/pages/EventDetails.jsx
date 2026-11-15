@@ -62,12 +62,47 @@ export default function EventDetails() {
   const category = event.Category;
   const cover = getEventCover(event);
 
+  const isCancelled = event.status === 'cancelled';
+  const isCompleted = event.status === 'completed';
+  const isDraft     = event.status === 'draft';
+  const canPurchase = !isCancelled && !isCompleted && !isDraft;
+
   return (
     <div className="mx-auto eg-event-detail-page" style={{ maxWidth: 820 }}>
       <div className="eg-detail-cover mb-4">
         <img className="eg-cover-image" src={cover.src} alt={`${event.title}: ${cover.description}`} decoding="async" title={cover.photographer ? `Photo by ${cover.photographer} on Unsplash` : event.title} onError={(e) => { e.currentTarget.remove(); }} />
         {cover.place && <span className="eg-cover-place">{cover.place}</span>}
       </div>
+
+      {/* ── Status banners ── */}
+      {isCancelled && (
+        <div className="eg-event-status-banner eg-event-status-banner--cancelled">
+          <i className="fa-solid fa-ban" />
+          <div>
+            <strong>This event has been cancelled</strong>
+            <p>We're sorry — this event will no longer take place. If you have already purchased tickets, please contact support.</p>
+          </div>
+        </div>
+      )}
+      {isCompleted && (
+        <div className="eg-event-status-banner eg-event-status-banner--completed">
+          <i className="fa-solid fa-flag-checkered" />
+          <div>
+            <strong>This event has already taken place</strong>
+            <p>Ticket sales are now closed. Browse our upcoming events to find your next experience.</p>
+          </div>
+        </div>
+      )}
+      {isDraft && (
+        <div className="eg-event-status-banner eg-event-status-banner--draft">
+          <i className="fa-solid fa-clock" />
+          <div>
+            <strong>This event is not yet published</strong>
+            <p>Tickets are not available yet. Check back soon.</p>
+          </div>
+        </div>
+      )}
+
       <h2>{event.title}</h2>
       <p className="text-muted mb-1">
         <i className="fa-regular fa-calendar me-1" />{fmtDate(event.event_date)} &nbsp;
@@ -76,35 +111,47 @@ export default function EventDetails() {
       </p>
       <p className="mt-3">{event.description || 'No description provided.'}</p>
 
-      <h5 className="mt-4">Choose ticket type</h5>
-      {event.TicketTypes.length === 0 && <p className="text-muted">Tickets are not on sale yet.</p>}
-      {event.TicketTypes.map((ticket) => {
-        const available = Number(ticket.available ?? ticket.quantity_available ?? ticket.quantity_total ?? MAX_PER_TYPE);
-        const soldOut = available <= 0;
-        return (
-          <div className="card mb-2" key={ticket.ticket_type_id}>
-            <div className="card-body d-flex flex-wrap align-items-center justify-content-between gap-2">
-              <div>
-                <strong>{ticket.name}</strong> <span className="ms-2">{kes(ticket.price)}</span>
-                <div className="small text-muted">{soldOut ? 'Sold out' : ticket.available != null ? `${ticket.available} available` : 'On sale now'}</div>
+      {canPurchase && (
+        <>
+          <h5 className="mt-4">Choose ticket type</h5>
+          {event.TicketTypes.length === 0 && <p className="text-muted">Tickets are not on sale yet.</p>}
+          {event.TicketTypes.map((ticket) => {
+            const available = Number(ticket.available ?? ticket.quantity_available ?? ticket.quantity_total ?? MAX_PER_TYPE);
+            const soldOut = available <= 0;
+            return (
+              <div className="card mb-2" key={ticket.ticket_type_id}>
+                <div className="card-body d-flex flex-wrap align-items-center justify-content-between gap-2">
+                  <div>
+                    <strong>{ticket.name}</strong> <span className="ms-2">{kes(ticket.price)}</span>
+                    <div className="small text-muted">{soldOut ? 'Sold out' : ticket.available != null ? `${ticket.available} available` : 'On sale now'}</div>
+                  </div>
+                  <div className="d-flex align-items-center gap-2">
+                    <span className="small text-muted">Quantity</span>
+                    <button className="btn btn-outline-secondary btn-sm" disabled={soldOut || !qty[ticket.ticket_type_id]} onClick={() => change(ticket, -1)} aria-label={`Decrease ${ticket.name}`}><i className="fa-solid fa-minus" /></button>
+                    <span className="px-2 fw-semibold" aria-live="polite">{qty[ticket.ticket_type_id] || 0}</span>
+                    <button className="btn btn-outline-secondary btn-sm" disabled={soldOut || qty[ticket.ticket_type_id] >= Math.min(MAX_PER_TYPE, available)} onClick={() => change(ticket, 1)} aria-label={`Increase ${ticket.name}`}><i className="fa-solid fa-plus" /></button>
+                  </div>
+                </div>
               </div>
-              <div className="d-flex align-items-center gap-2">
-                <span className="small text-muted">Quantity</span>
-                <button className="btn btn-outline-secondary btn-sm" disabled={soldOut || !qty[ticket.ticket_type_id]} onClick={() => change(ticket, -1)} aria-label={`Decrease ${ticket.name}`}><i className="fa-solid fa-minus" /></button>
-                <span className="px-2 fw-semibold" aria-live="polite">{qty[ticket.ticket_type_id] || 0}</span>
-                <button className="btn btn-outline-secondary btn-sm" disabled={soldOut || qty[ticket.ticket_type_id] >= Math.min(MAX_PER_TYPE, available)} onClick={() => change(ticket, 1)} aria-label={`Increase ${ticket.name}`}><i className="fa-solid fa-plus" /></button>
-              </div>
-            </div>
-          </div>
-        );
-      })}
+            );
+          })}
 
-      {error && <div className="alert alert-danger mt-3">{error}</div>}
-      <div className="d-flex justify-content-between align-items-center mt-3">
-        <span className="fw-semibold">Total: {kes(total)}</span>
-        <button className="btn btn-eg btn-lg" onClick={proceed} disabled={busy || event.TicketTypes.length === 0}>Continue to payment <i className="fa-solid fa-arrow-right ms-2" /></button>
-      </div>
-      {!user && <p className="small text-muted mt-2">You will be asked to log in or register before paying.</p>}
+          {error && <div className="alert alert-danger mt-3">{error}</div>}
+          <div className="d-flex justify-content-between align-items-center mt-3">
+            <span className="fw-semibold">Total: {kes(total)}</span>
+            <button className="btn btn-eg btn-lg" onClick={proceed} disabled={busy || event.TicketTypes.length === 0}>Continue to payment <i className="fa-solid fa-arrow-right ms-2" /></button>
+          </div>
+          {!user && <p className="small text-muted mt-2">You will be asked to log in or register before paying.</p>}
+        </>
+      )}
+
+      {!canPurchase && (
+        <div className="mt-4">
+          <a href="/browse" className="btn btn-outline-primary">
+            <i className="fa-solid fa-arrow-left me-2" />Browse other events
+          </a>
+        </div>
+      )}
     </div>
   );
 }

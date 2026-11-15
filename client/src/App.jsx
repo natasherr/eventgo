@@ -13,6 +13,7 @@ import Payment from './pages/Payment';
 import MyTickets from './pages/MyTickets';
 import Profile from './pages/Profile';
 import Help from './pages/Help';
+import NotFound from './pages/NotFound';
 
 // Shared layout: top navbar + page container + footer.
 function CustomerLayout() {
@@ -40,7 +41,7 @@ export default function App() {
         <Route path="/my-tickets" element={<ProtectedRoute><MyTickets /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/help" element={<Help />} />
-        <Route path="*" element={<div className="text-center py-5"><h2>Page not found</h2></div>} />
+        <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
   );

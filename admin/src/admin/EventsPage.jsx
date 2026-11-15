@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createEvent, createTicketType, fetchCategories, updateEvent, deleteEvent } from './api';
 import { useEvents, formatDate } from './useEvents';
 
@@ -187,14 +187,47 @@ export default function EventsPage() {
   const [tickets, setTickets] = useState([{ ...EMPTY_TICKET }]);
 
   // Modal state
-  const [editTarget, setEditTarget] = useState(null);   // event object being edited
-  const [deleteTarget, setDeleteTarget] = useState(null); // event object being deleted
+  const [editTarget, setEditTarget] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+
+  // ── Table filters ──────────────────────────────────────────────────────────
+  const [search, setSearch]         = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [dateFrom, setDateFrom]     = useState('');
+  const [dateTo, setDateTo]         = useState('');
 
   function addTicket() { setTickets((t) => [...t, { ...EMPTY_TICKET }]); }
   function removeTicket(i) { setTickets((t) => t.filter((_, idx) => idx !== i)); }
   function updateTicket(i, field) {
     return (e) => setTickets((t) => t.map((row, idx) => idx === i ? { ...row, [field]: e.target.value } : row));
   }
+
+  const filteredEvents = useMemo(() => {
+    const q      = search.toLowerCase();
+    const fromMs = dateFrom ? new Date(dateFrom).getTime() : null;
+    const toMs   = dateTo   ? new Date(dateTo + 'T23:59:59').getTime() : null;
+
+    return events.filter((ev) => {
+      if (q) {
+        const hay = [ev.title, ev.venue, ev.Category?.name].filter(Boolean).join(' ').toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      if (statusFilter !== 'all' && ev.status !== statusFilter) return false;
+      const ts = ev.event_date ? new Date(ev.event_date).getTime() : null;
+      if (fromMs && ts && ts < fromMs) return false;
+      if (toMs   && ts && ts > toMs)   return false;
+      return true;
+    });
+  }, [events, search, statusFilter, dateFrom, dateTo]);
+
+  const isFiltered = search || statusFilter !== 'all' || dateFrom || dateTo;
+
+  const clearFilters = () => {
+    setSearch('');
+    setStatusFilter('all');
+    setDateFrom('');
+    setDateTo('');
+  };
 
   const [categories, setCategories] = useState([]);
   useEffect(() => {
@@ -450,13 +483,62 @@ export default function EventsPage() {
       <section className="card">
         <div className="page-head" style={{ marginBottom: '16px' }}>
           <h2>All Events</h2>
-          <span className="badge">{events.length} events</span>
+          <span className="badge">
+            {isFiltered ? `${filteredEvents.length} of ${events.length}` : events.length} events
+          </span>
         </div>
+
+        {/* ── Filters bar ── */}
+        <div className="sales-filters" style={{ marginBottom: '12px', display: 'flex', flexWrap: 'nowrap', alignItems: 'flex-end', gap: 10 }}>
+          <input
+            type="search"
+            placeholder="Search title, venue, category…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ flex: '0 1 220px', minWidth: 0 }}
+          />
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ flex: '0 0 150px' }}>
+            <option value="all">All statuses</option>
+            <option value="published">Published</option>
+            <option value="draft">Draft</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="completed">Completed</option>
+          </select>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, flexWrap: 'nowrap' }}>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: '.76rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.04em' }}>
+              From
+              <input
+                type="date"
+                style={{ padding: '7px 10px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '.84rem', background: '#fff', color: '#0f172a', outline: 'none' }}
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+              />
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: '.76rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.04em' }}>
+              To
+              <input
+                type="date"
+                style={{ padding: '7px 10px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '.84rem', background: '#fff', color: '#0f172a', outline: 'none' }}
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+              />
+            </label>
+          </div>
+          {isFiltered && (
+            <button className="btn-secondary" onClick={clearFilters} style={{ alignSelf: 'flex-end' }}>
+              Clear filters
+            </button>
+          )}
+        </div>
+
         {loading && <p className="muted">Loading events…</p>}
         {error && <div className="alert alert--error" role="alert">{error}</div>}
         {!loading && !error && events.length === 0 && <p className="muted">No events yet.</p>}
+        {!loading && !error && events.length > 0 && filteredEvents.length === 0 && (
+          <p className="muted">No events match your filters. <button className="btn-secondary" onClick={clearFilters} style={{ marginLeft: 8 }}>Clear filters</button></p>
+        )}
 
-        {events.length > 0 && (
+        {filteredEvents.length > 0 && (
           <div style={{ overflowX: 'auto' }}>
             <table className="data-table">
               <thead>
@@ -471,7 +553,7 @@ export default function EventsPage() {
                 </tr>
               </thead>
               <tbody>
-                {events.map((ev) => (
+                {filteredEvents.map((ev) => (
                   <tr key={ev.event_id}>
                     <td><strong>{ev.title}</strong></td>
                     <td>{ev.Category?.name ?? '—'}</td>
