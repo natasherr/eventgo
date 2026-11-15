@@ -57,7 +57,7 @@ export default function Profile() {
         full_name: fullName,
         phone_number: phone,
       });
-      updateUser({ ...user, name: data.user.name, phone_number: phone.trim() || null });
+      updateUser({ ...user, name: data.user.name, phone_number: data.user.phone_number });
       setSuccess('Profile updated successfully.');
       setEditing(false);
     } catch (err) {
