@@ -322,3 +322,27 @@ exports.updateProfile = async (req, res) => {
     res.status(500).json({ message: 'Server error during profile update' });
   }
 };
+
+// @desc    Get current logged-in user's live profile data
+// @route   GET /api/auth/me
+exports.getMe = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.user_id, {
+      attributes: ['user_id', 'full_name', 'email', 'phone_number', 'role', 'is_active', 'deletion_requested']
+    });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.status(200).json({
+      id: user.user_id,
+      name: user.full_name,
+      email: user.email,
+      phone_number: user.phone_number,
+      role: user.role,
+      is_active: user.is_active,
+      deletion_requested: user.deletion_requested
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error fetching profile' });
+  }
+};
+

@@ -1961,6 +1961,27 @@ a.btn:hover {
   box-shadow: none;
 }
 
+/* Approve deletion request — amber/orange to distinguish from destructive red */
+.action-btn--approve {
+  background: #fff;
+  border-color: #fcd34d;
+  color: #b45309;
+}
+
+.action-btn--approve:hover:not(:disabled),
+.action-btn--approve:focus-visible {
+  background: #fffbeb;
+  border-color: #f59e0b;
+  color: #92400e;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(245,158,11,.15);
+}
+
+.action-btn--approve:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
 /* ── Shared secondary / danger buttons used in modals ── */
 .btn-secondary {
   display: inline-flex;

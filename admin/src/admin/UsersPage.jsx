@@ -126,7 +126,10 @@ export default function UsersPage({ currentAdminRole }) {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [editTarget, setEditTarget] = useState(null);
-  const [dismissingId, setDismissingId] = useState(null);
+  // null | { userId, action: 'approve' | 'reject' }
+  const [processingId, setProcessingId] = useState(null);
+  // userId waiting for approve confirmation, or null
+  const [confirmApproveId, setConfirmApproveId] = useState(null);
 
   async function loadUsers() {
     setLoading(true);
@@ -141,15 +144,34 @@ export default function UsersPage({ currentAdminRole }) {
     }
   }
 
-  async function dismissDeletionRequest(userId) {
-    setDismissingId(userId);
+  // Approve: disable the account AND clear the deletion flag in one API call
+  async function approveDeletionRequest(userId) {
+    setConfirmApproveId(null);
+    setProcessingId(userId);
+    try {
+      await updateUserAdmin(userId, { is_active: false, deletion_requested: false });
+      setUsers((prev) => prev.map((u) =>
+        u.user_id === userId ? { ...u, is_active: false, deletion_requested: false } : u
+      ));
+    } catch (err) {
+      setError(err.message || 'Unable to approve deletion request.');
+    } finally {
+      setProcessingId(null);
+    }
+  }
+
+  // Reject: clear the flag only — account stays active
+  async function rejectDeletionRequest(userId) {
+    setProcessingId(userId);
     try {
       await updateUserAdmin(userId, { deletion_requested: false });
-      setUsers((prev) => prev.map((u) => u.user_id === userId ? { ...u, deletion_requested: false } : u));
+      setUsers((prev) => prev.map((u) =>
+        u.user_id === userId ? { ...u, deletion_requested: false } : u
+      ));
     } catch (err) {
-      setError(err.message || 'Unable to dismiss request.');
+      setError(err.message || 'Unable to reject deletion request.');
     } finally {
-      setDismissingId(null);
+      setProcessingId(null);
     }
   }
 
@@ -290,15 +312,49 @@ export default function UsersPage({ currentAdminRole }) {
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                         Edit
                       </button>
-                      {u.deletion_requested && (
-                        <button
-                          className="action-btn action-btn--delete"
-                          onClick={() => dismissDeletionRequest(u.user_id)}
-                          disabled={dismissingId === u.user_id}
-                          title="Dismiss deletion request"
-                        >
-                          {dismissingId === u.user_id ? '…' : 'Dismiss'}
-                        </button>
+                      {u.deletion_requested && confirmApproveId === u.user_id && (
+                        // Inline confirmation step before approving
+                        <>
+                          <span style={{ fontSize: '.75rem', color: '#b91c1c', fontWeight: 600, alignSelf: 'center' }}>
+                            Disable account?
+                          </span>
+                          <button
+                            className="action-btn action-btn--delete"
+                            onClick={() => approveDeletionRequest(u.user_id)}
+                            disabled={processingId === u.user_id}
+                            title="Confirm: disable account and clear deletion request"
+                          >
+                            {processingId === u.user_id ? '…' : 'Confirm'}
+                          </button>
+                          <button
+                            className="action-btn action-btn--edit"
+                            onClick={() => setConfirmApproveId(null)}
+                            disabled={processingId === u.user_id}
+                            title="Cancel"
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      )}
+                      {u.deletion_requested && confirmApproveId !== u.user_id && (
+                        <>
+                          <button
+                            className="action-btn action-btn--approve"
+                            onClick={() => setConfirmApproveId(u.user_id)}
+                            disabled={processingId === u.user_id}
+                            title="Approve: disable this account and clear the deletion request"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            className="action-btn action-btn--edit"
+                            onClick={() => rejectDeletionRequest(u.user_id)}
+                            disabled={processingId === u.user_id}
+                            title="Reject: clear the deletion request, keep account active"
+                          >
+                            {processingId === u.user_id ? '…' : 'Reject'}
+                          </button>
+                        </>
                       )}
                     </td>
                   </tr>

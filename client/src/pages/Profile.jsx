@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api, { errMsg } from '../api';
 
@@ -30,6 +30,26 @@ export default function Profile() {
   const [deleteSuccess, setDeleteSuccess] = useState(
     () => localStorage.getItem(DELETION_REQUESTED_KEY) === '1'
   );
+
+  // On mount, fetch the live deletion_requested value from the server.
+  // This keeps the UI accurate even if an admin rejected the request.
+  useEffect(() => {
+    api.get('/auth/me')
+      .then(({ data }) => {
+        if (data.deletion_requested) {
+          // Request is still pending — make sure localStorage reflects this
+          localStorage.setItem(DELETION_REQUESTED_KEY, '1');
+          setDeleteSuccess(true);
+        } else {
+          // Request was rejected or never made — clear the stale flag
+          localStorage.removeItem(DELETION_REQUESTED_KEY);
+          setDeleteSuccess(false);
+        }
+      })
+      .catch(() => {
+        // Silently ignore — if the check fails, we keep the localStorage state
+      });
+  }, []);
 
   const openEdit = () => {
     const name = user?.name || '';
