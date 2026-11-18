@@ -1,31 +1,31 @@
-const { Resend } = require('resend');
-require('dotenv').config();
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+const nodemailer = require('nodemailer');
 
 /**
- * Sends an email using Resend
- * @param {string} to - The recipient's email address
- * @param {string} subject - The email subject line
- * @param {string} htmlContent - The HTML body of the email
+ * Sends an email using Gmail via Nodemailer.
+ * Requires GMAIL_USER and GMAIL_APP_PASSWORD environment variables.
+ *
+ * @param {string} to - Recipient email address
+ * @param {string} subject - Email subject line
+ * @param {string} htmlContent - HTML body of the email
  */
 const sendEmail = async (to, subject, htmlContent) => {
-  try {
-    // Note: Without a custom domain, Resend requires you to use 'onboarding@resend.dev' as the sender
-    // and you can ONLY send emails to the email address you registered your Resend account with.
-    const data = await resend.emails.send({
-      from: 'EventGo <onboarding@resend.dev>',
-      to: [to],
-      subject: subject,
-      html: htmlContent
-    });
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_APP_PASSWORD,
+    },
+  });
 
-    console.log('📧 Email sent successfully. ID:', data.id);
-    return data;
-  } catch (error) {
-    console.error('❌ Failed to send email:', error);
-    throw error;
-  }
+  const info = await transporter.sendMail({
+    from: `"EventGo" <${process.env.GMAIL_USER}>`,
+    to,
+    subject,
+    html: htmlContent,
+  });
+
+  console.log('📧 Email sent successfully. ID:', info.messageId);
+  return info;
 };
 
 module.exports = { sendEmail };
