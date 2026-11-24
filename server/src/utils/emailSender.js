@@ -1,28 +1,35 @@
-const { Resend } = require('resend');
+const axios = require('axios');
 
 /**
- * Sends an email using Resend.
- * Requires RESEND_API_KEY environment variable.
- *
- * Note: Without a verified custom domain, Resend can only deliver
- * to the email address registered with the Resend account.
+ * Sends an email using the Brevo HTTP API (port 443 — works on all hosting platforms).
+ * Requires BREVO_API_KEY and BREVO_SENDER_EMAIL environment variables.
  *
  * @param {string} to - Recipient email address
  * @param {string} subject - Email subject line
  * @param {string} htmlContent - HTML body of the email
  */
 const sendEmail = async (to, subject, htmlContent) => {
-  const resend = new Resend(process.env.RESEND_API_KEY);
+  const response = await axios.post(
+    'https://api.brevo.com/v3/smtp/email',
+    {
+      sender: {
+        name: 'EventGo',
+        email: process.env.BREVO_SENDER_EMAIL,
+      },
+      to: [{ email: to }],
+      subject,
+      htmlContent,
+    },
+    {
+      headers: {
+        'api-key': process.env.BREVO_API_KEY,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
 
-  const data = await resend.emails.send({
-    from: 'EventGo <onboarding@resend.dev>',
-    to: [to],
-    subject,
-    html: htmlContent,
-  });
-
-  console.log('📧 Email sent successfully. ID:', data.id);
-  return data;
+  console.log('📧 Email sent successfully. MessageId:', response.data.messageId);
+  return response.data;
 };
 
 module.exports = { sendEmail };
