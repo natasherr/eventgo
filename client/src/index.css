@@ -545,6 +545,40 @@ main:has(.eg-auth-wrap) ~ footer.eg-footer {
   color: #a8aeb3;
 }
 
+/* ── Password show/hide wrapper ── */
+.eg-pw-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.eg-pw-wrap .eg-auth-input {
+  flex: 1;
+  padding-right: 44px; /* room for the toggle button */
+}
+
+.eg-pw-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color .15s;
+  line-height: 1;
+}
+
+.eg-pw-toggle:hover {
+  color: #315c70;
+}
+
 .eg-auth-btn {
   min-height: 46px;
   font-size: .97rem;
