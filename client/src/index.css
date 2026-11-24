@@ -579,6 +579,14 @@ main:has(.eg-auth-wrap) ~ footer.eg-footer {
   color: #315c70;
 }
 
+/* Suppress Bootstrap's built-in valid/invalid background icons inside password wrap
+   — the eye toggle occupies that space already */
+.eg-pw-wrap .form-control.is-valid,
+.eg-pw-wrap .form-control.is-invalid {
+  background-image: none;
+  padding-right: 44px;
+}
+
 .eg-auth-btn {
   min-height: 46px;
   font-size: .97rem;
