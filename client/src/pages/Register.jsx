@@ -21,12 +21,14 @@ export default function Register() {
   const { register } = useAuth();
   const navigate = useNavigate();
   const from = useLocation().state?.from?.pathname || '/';
-  const [form, setForm] = useState({ name: '', email: '', phone_number: '', password: '', confirm: '' });
-  const [showPw, setShowPw]         = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
+  
+  // Removed 'confirm' from state
+  const [form, setForm] = useState({ name: '', email: '', phone_number: '', password: '' });
+  const [showPw, setShowPw] = useState(false);
   const [errors, setErrors] = useState({});
   const [apiError, setApiError] = useState('');
   const [busy, setBusy] = useState(false);
+
   // Clear the field's error as soon as the user starts correcting it
   const set = (k) => (e) => {
     setForm((prev) => ({ ...prev, [k]: e.target.value }));
@@ -39,7 +41,7 @@ export default function Register() {
     if (!isEmail(form.email)) e.email = 'Please enter a valid email address.';
     if (!/^(\+?254|0)\d{9}$/.test(form.phone_number.replace(/\s/g, ''))) e.phone_number = 'Enter a valid Kenyan number, e.g. 0712345678.';
     if (form.password.length < 8) e.password = 'Password must be at least 8 characters.';
-    if (form.confirm !== form.password) e.confirm = 'Passwords do not match.';
+    // Removed the confirm password check
     return e;
   };
 
@@ -54,39 +56,26 @@ export default function Register() {
     } catch (err) { setApiError(errMsg(err)); } finally { setBusy(false); }
   };
 
-  // For password fields, render with show/hide toggle; others plain
+  // Simplified the field function to only handle the main password toggle
   const field = (k, label, type = 'text', auto, placeholder) => {
     const isPassword = type === 'password';
-    const show = k === 'password' ? showPw : showConfirm;
-    const toggle = k === 'password' ? () => setShowPw((v) => !v) : () => setShowConfirm((v) => !v);
     return (
       <div className="mb-3">
         <label className="form-label eg-auth-label">{label}</label>
         {isPassword ? (
           <div className="eg-pw-wrap">
             <input
-              type={show ? 'text' : 'password'}
-              className={`form-control eg-auth-input${
-                errors[k] ? ' is-invalid'
-                : k === 'confirm' && form.confirm && form.confirm !== form.password ? ' is-invalid'
-                : k === 'confirm' && form.confirm && form.confirm === form.password ? ' is-valid'
-                : ''
-              }`}
+              type={showPw ? 'text' : 'password'}
+              className={`form-control eg-auth-input${errors[k] ? ' is-invalid' : ''}`}
               value={form[k]}
               onChange={set(k)}
               autoComplete={auto}
               placeholder={placeholder}
             />
-            <button type="button" className="eg-pw-toggle" onClick={toggle} aria-label={show ? 'Hide password' : 'Show password'}>
-              {show ? <EyeOffIcon /> : <EyeIcon />}
+            <button type="button" className="eg-pw-toggle" onClick={() => setShowPw((v) => !v)} aria-label={showPw ? 'Hide password' : 'Show password'}>
+              {showPw ? <EyeOffIcon /> : <EyeIcon />}
             </button>
             {errors[k] && <div className="invalid-feedback" style={{ display: 'block' }}>{errors[k]}</div>}
-            {!errors[k] && k === 'confirm' && form.confirm && form.confirm !== form.password && (
-              <div className="invalid-feedback" style={{ display: 'block' }}>Passwords do not match.</div>
-            )}
-            {!errors[k] && k === 'confirm' && form.confirm && form.confirm === form.password && (
-              <div className="valid-feedback" style={{ display: 'block' }}>Passwords match.</div>
-            )}
           </div>
         ) : (
           <>
@@ -147,7 +136,7 @@ export default function Register() {
             {field('email', 'Email address', 'email', 'email', 'you@example.com')}
             {field('phone_number', 'Phone number', 'tel', 'tel', '0712 345 678')}
             {field('password', 'Password', 'password', 'new-password', '8+ characters')}
-            {field('confirm', 'Confirm password', 'password', 'new-password', 'Repeat password')}
+            {/* Confirm password field removed */}
             <button className="btn btn-eg w-100 eg-auth-btn mt-1" disabled={busy}>
               {busy
                 ? <><span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />Creating account…</>

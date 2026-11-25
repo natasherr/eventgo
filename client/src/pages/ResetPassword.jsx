@@ -18,18 +18,17 @@ const EyeOffIcon = () => (
 
 export default function ResetPassword() {
   const { token } = useParams();
-  const [password, setPassword]     = useState('');
-  const [confirm, setConfirm]       = useState('');
-  const [showPw, setShowPw]         = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [msg, setMsg]               = useState('');
-  const [error, setError]           = useState('');
-  const [busy, setBusy]             = useState(false);
+  const [password, setPassword] = useState('');
+  // Removed 'confirm' state
+  const [showPw, setShowPw] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
 
   const submit = async (e) => {
     e.preventDefault(); setError('');
     if (password.length < 8) return setError('Password must be at least 8 characters.');
-    if (password !== confirm) return setError('Passwords do not match.');
+    // Removed the confirm password check
     setBusy(true);
     try {
       const { data } = await api.post('/auth/reset-password', { token, newPassword: password });
@@ -83,7 +82,7 @@ export default function ResetPassword() {
       <div className="eg-auth-card-wrap">
         <div className="eg-auth-card">
           <h3 className="eg-auth-title">Set a new password</h3>
-          <p className="eg-auth-subtitle">Enter and confirm your new password below</p>
+          <p className="eg-auth-subtitle">Enter your new password below</p>
 
           {error && (
             <div className="alert alert-danger eg-auth-alert">
@@ -100,7 +99,7 @@ export default function ResetPassword() {
             </div>
           ) : (
             <form onSubmit={submit} noValidate>
-              <div className="mb-3">
+              <div className="mb-4">
                 <label className="form-label eg-auth-label">New password</label>
                 <div className="eg-pw-wrap">
                   <input
@@ -116,28 +115,7 @@ export default function ResetPassword() {
                   </button>
                 </div>
               </div>
-              <div className="mb-4">
-                <label className="form-label eg-auth-label">Confirm password</label>
-                <div className="eg-pw-wrap">
-                  <input
-                    type={showConfirm ? 'text' : 'password'}
-                    className={`form-control eg-auth-input${confirm && confirm !== password ? ' is-invalid' : confirm && confirm === password ? ' is-valid' : ''}`}
-                    value={confirm}
-                    onChange={(e) => setConfirm(e.target.value)}
-                    autoComplete="new-password"
-                    placeholder="Repeat password"
-                  />
-                  <button type="button" className="eg-pw-toggle" onClick={() => setShowConfirm((v) => !v)} aria-label={showConfirm ? 'Hide password' : 'Show password'}>
-                    {showConfirm ? <EyeOffIcon /> : <EyeIcon />}
-                  </button>
-                </div>
-                {confirm && confirm !== password && (
-                  <div className="invalid-feedback" style={{ display: 'block' }}>Passwords do not match.</div>
-                )}
-                {confirm && confirm === password && (
-                  <div className="valid-feedback" style={{ display: 'block' }}>Passwords match.</div>
-                )}
-              </div>
+              {/* Confirm password block removed */}
               <button className="btn btn-eg w-100 eg-auth-btn" disabled={busy}>
                 {busy
                   ? <><span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />Saving…</>
