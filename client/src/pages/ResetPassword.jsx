@@ -121,7 +121,7 @@ export default function ResetPassword() {
                 <div className="eg-pw-wrap">
                   <input
                     type={showConfirm ? 'text' : 'password'}
-                    className={`form-control eg-auth-input${confirm && confirm !== password ? ' is-invalid' : confirm && confirm === password ? ' is-valid' : ''}`}
+                    className="form-control eg-auth-input"
                     value={confirm}
                     onChange={(e) => setConfirm(e.target.value)}
                     autoComplete="new-password"
@@ -131,12 +131,6 @@ export default function ResetPassword() {
                     {showConfirm ? <EyeOffIcon /> : <EyeIcon />}
                   </button>
                 </div>
-                {confirm && confirm !== password && (
-                  <div className="invalid-feedback" style={{ display: 'block' }}>Passwords do not match.</div>
-                )}
-                {confirm && confirm === password && (
-                  <div className="valid-feedback" style={{ display: 'block' }}>Passwords match.</div>
-                )}
               </div>
               <button className="btn btn-eg w-100 eg-auth-btn" disabled={busy}>
                 {busy

@@ -66,12 +66,7 @@ export default function Register() {
           <div className="eg-pw-wrap">
             <input
               type={show ? 'text' : 'password'}
-              className={`form-control eg-auth-input${
-                errors[k] ? ' is-invalid'
-                : k === 'confirm' && form.confirm && form.confirm !== form.password ? ' is-invalid'
-                : k === 'confirm' && form.confirm && form.confirm === form.password ? ' is-valid'
-                : ''
-              }`}
+              className={`form-control eg-auth-input${errors[k] ? ' is-invalid' : ''}`}
               value={form[k]}
               onChange={set(k)}
               autoComplete={auto}
@@ -81,12 +76,6 @@ export default function Register() {
               {show ? <EyeOffIcon /> : <EyeIcon />}
             </button>
             {errors[k] && <div className="invalid-feedback" style={{ display: 'block' }}>{errors[k]}</div>}
-            {!errors[k] && k === 'confirm' && form.confirm && form.confirm !== form.password && (
-              <div className="invalid-feedback" style={{ display: 'block' }}>Passwords do not match.</div>
-            )}
-            {!errors[k] && k === 'confirm' && form.confirm && form.confirm === form.password && (
-              <div className="valid-feedback" style={{ display: 'block' }}>Passwords match.</div>
-            )}
           </div>
         ) : (
           <>
