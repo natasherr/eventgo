@@ -27,13 +27,17 @@ export default function Register() {
   const [errors, setErrors] = useState({});
   const [apiError, setApiError] = useState('');
   const [busy, setBusy] = useState(false);
-  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+  // Clear the field's error as soon as the user starts correcting it
+  const set = (k) => (e) => {
+    setForm((prev) => ({ ...prev, [k]: e.target.value }));
+    setErrors((prev) => { const next = { ...prev }; delete next[k]; return next; });
+  };
 
   const validate = () => {
     const e = {};
     if (form.name.trim().length < 2) e.name = 'Please enter your full name.';
     if (!isEmail(form.email)) e.email = 'Please enter a valid email address.';
-    if (!/^(\+?254|0)[17]\d{8}$/.test(form.phone_number.replace(/\s/g, ''))) e.phone_number = 'Enter a valid Kenyan number, e.g. 0712345678.';
+    if (!/^(\+?254|0)\d{9}$/.test(form.phone_number.replace(/\s/g, ''))) e.phone_number = 'Enter a valid Kenyan number, e.g. 0712345678.';
     if (form.password.length < 8) e.password = 'Password must be at least 8 characters.';
     if (form.confirm !== form.password) e.confirm = 'Passwords do not match.';
     return e;

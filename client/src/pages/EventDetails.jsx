@@ -24,7 +24,6 @@ export default function EventDetails() {
   const [qty, setQty] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -48,7 +47,6 @@ export default function EventDetails() {
     setError('');
     if (!selected.length) return setError('Choose at least one ticket to continue.');
     if (!user) return navigate('/login', { state: { from: location } });
-    setBusy(true);
     navigate('/payment', {
       state: {
         event: { event_id: event.event_id, title: event.title, event_date: event.event_date, venue: event.venue },
@@ -139,7 +137,7 @@ export default function EventDetails() {
           {error && <div className="alert alert-danger mt-3">{error}</div>}
           <div className="d-flex justify-content-between align-items-center mt-3">
             <span className="fw-semibold">Total: {kes(total)}</span>
-            <button className="btn btn-eg btn-lg" onClick={proceed} disabled={busy || event.TicketTypes.length === 0}>Continue to payment <i className="fa-solid fa-arrow-right ms-2" /></button>
+            <button className="btn btn-eg btn-lg" onClick={proceed} disabled={event.TicketTypes.length === 0}>Continue to payment <i className="fa-solid fa-arrow-right ms-2" /></button>
           </div>
           {!user && <p className="small text-muted mt-2">You will be asked to log in or register before paying.</p>}
         </>
@@ -147,7 +145,7 @@ export default function EventDetails() {
 
       {!canPurchase && (
         <div className="mt-4">
-          <a href="/browse" className="btn btn-outline-primary">
+          <a href="/events" className="btn btn-outline-primary">
             <i className="fa-solid fa-arrow-left me-2" />Browse other events
           </a>
         </div>
